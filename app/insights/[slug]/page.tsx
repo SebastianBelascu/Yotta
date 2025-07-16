@@ -2,6 +2,36 @@ import React from 'react';
 import Link from 'next/link';
 import { Layout } from '@/components/layout/layout';
 import { notFound } from 'next/navigation';
+import { Metadata } from 'next';
+
+type GenerateMetadataProps = {
+  params: { slug: string }
+}
+
+export async function generateMetadata({ params }: GenerateMetadataProps): Promise<Metadata> {
+  // Find the article matching the slug
+  const article = articles.find(article => article.slug === params.slug);
+  
+  if (!article) {
+    return {
+      title: 'Article Not Found',
+      description: 'The requested article could not be found.'
+    };
+  }
+  
+  return {
+    title: `${article.title} | Yotta Insights`,
+    description: article.content.substring(0, 160).replace(/<[^>]*>/g, '') + '...',
+    openGraph: {
+      title: article.title,
+      description: article.content.substring(0, 160).replace(/<[^>]*>/g, '') + '...',
+      type: 'article',
+      publishedTime: article.date,
+      authors: [article.author],
+      tags: article.tags,
+    },
+  };
+}
 
 // Mock data for blog articles - in a real app, this would come from a CMS or database
 const articles = [
@@ -95,7 +125,6 @@ const articles = [
 ];
 
 export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  // Since we're using an async function, we can safely use params
   const { slug } = params;
   
   // Find the article matching the slug

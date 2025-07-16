@@ -1,6 +1,10 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { LoginForm } from '@/components/login-form';
 import { Layout } from '@/components/layout/layout';
+
+function LoginFormWrapper() {
+  return <LoginForm />;
+}
 
 export default function LoginPage() {
   return (
@@ -13,7 +17,9 @@ export default function LoginPage() {
               Sign in to access your admin dashboard
             </p>
           </div>
-          <LoginForm />
+          <Suspense fallback={<div className="text-center p-4">Loading login form...</div>}>
+            <LoginFormWrapper />
+          </Suspense>
         </div>
       </div>
     </Layout>
