@@ -94,7 +94,7 @@ const articles = [
   // Other articles data would be here...
 ];
 
-export default async function BlogPostPage({ params }: { params: { slug: string } }) {
+export default function BlogPostPage({ params }: { params: { slug: string } }) {
   // Since we're using an async function, we can safely use params
   const { slug } = params;
   
