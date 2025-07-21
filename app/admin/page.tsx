@@ -1,271 +1,232 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/admin/layout';
+import { KPICard, LineChart, BarChart, DonutChart } from '@/components/admin/charts';
 import { 
   BarChart3, 
   Users, 
   ListChecks, 
   DollarSign,
-  Search,
-  Filter,
-  Upload,
-  Plus
+  TrendingUp,
+  AlertTriangle,
+  Activity,
+  Building2
 } from 'lucide-react';
 
-export default function AdminDashboard() {
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
-  
-  // Mock data for the dashboard
-  const dashboardStats = [
-    {
-      title: 'Total Listings',
-      value: '247',
-      change: '+15% from last month',
-      icon: <ListChecks className="h-6 w-6 text-blue-500" />,
-    },
-    {
-      title: 'Active Providers',
-      value: '89',
-      change: '+7% from last month',
-      icon: <Users className="h-6 w-6 text-green-500" />,
-    },
-    {
-      title: 'Pending Payments',
-      value: '23',
-      change: 'Requires attention',
-      icon: <DollarSign className="h-6 w-6 text-orange-500" />,
-    },
-    {
-      title: 'Monthly Revenue',
-      value: '$15,420',
-      change: '+8% from last month',
-      icon: <BarChart3 className="h-6 w-6 text-purple-500" />,
-    }
-  ];
-
-  // Mock data for listings
-  const listings = [
-    {
-      id: 1,
-      name: 'CloudSync Pro',
-      category: 'SaaS',
-      type: 'AI/SaaS',
-      price: '$99',
-      provider: 'admin@cloudsync.com',
-      billing: 'billing@cloudsync.com',
-      frequency: 'Monthly',
-      status: 'Active'
-    },
-    {
-      id: 2,
-      name: 'AI Content Generator',
-      category: 'AI/ML',
-      type: 'AI/SaaS',
-      price: '$75',
-      provider: 'contact@aicontentgen.com',
-      billing: 'finance@aicontentgen.com',
-      frequency: 'Weekly',
-      status: 'Active'
-    },
-    {
-      id: 3,
-      name: 'Legal Consulting Services',
-      category: 'Professional Services',
-      type: 'Service',
-      price: '$75',
-      provider: 'info@legalconsult.com',
-      billing: 'accounts@legalconsult.com',
-      frequency: 'Daily',
-      status: 'Pending'
-    },
-    {
-      id: 4,
-      name: 'Marketing Automation Suite',
-      category: 'Marketing',
-      type: 'Service',
-      price: '$120',
-      provider: 'sales@marketauto.com',
-      billing: 'billing@marketauto.com',
-      frequency: 'Weekly',
-      status: 'Active'
-    }
-  ];
-
-  const toggleRowSelection = (id: number) => {
-    if (selectedRows.includes(id)) {
-      setSelectedRows(selectedRows.filter(rowId => rowId !== id));
-    } else {
-      setSelectedRows([...selectedRows, id]);
-    }
+interface DashboardData {
+  kpis: {
+    totalLeads: number;
+    leadsThisMonth: number;
+    leadsGrowth: number;
+    totalServices: number;
+    activeServices: number;
+    servicesThisMonth: number;
+    totalVendors: number;
+    vendorsThisMonth: number;
+    avgServicePrice: number;
   };
+  charts: {
+    monthlyLeadsTrend: { month: string; leads: number }[];
+    topCategories: { category: string; leads: number }[];
+    serviceDistribution: { category: string; count: number }[];
+  };
+  recentActivity: {
+    id: string;
+    created_at: string;
+    service_name: string;
+  }[];
+  alerts: {
+    type: string;
+    title: string;
+    message: string;
+    count: number;
+  }[];
+}
+
+export default function AdminDashboard() {
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        const response = await fetch('/api/dashboard/analytics');
+        if (response.ok) {
+          const data = await response.json();
+          setDashboardData(data);
+          setError(null);
+        } else {
+          setError('Failed to fetch dashboard data');
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setError('Network error while fetching dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error || !dashboardData) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error || 'No data available'}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  const { kpis, charts, recentActivity, alerts } = dashboardData;
 
   return (
     <AdminLayout>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Listings</h1>
-          <div className="text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
-            System: Active
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 mt-1">Platform overview and analytics</p>
           </div>
         </div>
-        
-        <p className="text-gray-600 mb-6">Manage listings, leads, and billing</p>
-        
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {dashboardStats.map((stat, index) => (
-            <div key={index} className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-gray-500">{stat.title}</p>
-                  <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
-                  <p className="text-xs text-gray-500 mt-1">{stat.change}</p>
-                </div>
-                <div className="p-2 bg-gray-50 rounded-lg">
-                  {stat.icon}
-                </div>
-              </div>
+
+        {/* Alerts */}
+        {alerts.length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
+              <h3 className="text-sm font-medium text-yellow-800">Alerts</h3>
             </div>
-          ))}
+            <div className="mt-2 space-y-1">
+              {alerts.map((alert, index) => (
+                <p key={index} className="text-sm text-yellow-700">
+                  <strong>{alert.title}:</strong> {alert.message}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <KPICard
+            title="Total Leads"
+            value={kpis.totalLeads}
+            change={`${kpis.leadsThisMonth} this month`}
+            trend={kpis.leadsGrowth > 0 ? 'up' : kpis.leadsGrowth < 0 ? 'down' : 'neutral'}
+            icon={<TrendingUp className="h-6 w-6" />}
+          />
+          <KPICard
+            title="Active Services"
+            value={kpis.activeServices}
+            change={`${kpis.servicesThisMonth} new this month`}
+            trend="up"
+            icon={<ListChecks className="h-6 w-6" />}
+          />
+          <KPICard
+            title="Total Vendors"
+            value={kpis.totalVendors}
+            change={`${kpis.vendorsThisMonth} new this month`}
+            trend="up"
+            icon={<Building2 className="h-6 w-6" />}
+          />
+          <KPICard
+            title="Avg Service Price"
+            value={`$${kpis.avgServicePrice}`}
+            change="Average pricing"
+            trend="neutral"
+            icon={<DollarSign className="h-6 w-6" />}
+          />
         </div>
-        
-        {/* Listing Management Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="mb-4">
-            <h2 className="text-lg font-bold">Listing Management</h2>
-            <p className="text-sm text-gray-500">Manage service listings and AI/SaaS tools. Published listings go live on the site immediately.</p>
-          </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <LineChart
+            data={charts.monthlyLeadsTrend}
+            title="Monthly Leads Trend"
+          />
+          <BarChart
+            data={charts.topCategories}
+            title="Top Categories by Leads"
+          />
+        </div>
+
+        {/* Second Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <DonutChart
+            data={charts.serviceDistribution}
+            title="Service Distribution"
+          />
           
-          {/* Search and Filter Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <div className="relative w-full md:w-auto">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input 
-                type="text" 
-                placeholder="Search listings..." 
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            
-            <div className="flex gap-2 w-full md:w-auto">
-              <div className="relative flex-grow md:flex-grow-0">
-                <button className="flex items-center justify-between px-4 py-2 border border-gray-300 rounded-md w-full md:w-44 bg-white">
-                  <span>All Categories</span>
-                  <Filter className="h-4 w-4 text-gray-500" />
-                </button>
-              </div>
-              
-              <div className="relative flex-grow md:flex-grow-0">
-                <button className="flex items-center justify-between px-4 py-2 border border-gray-300 rounded-md w-full md:w-32 bg-white">
-                  <span>All Types</span>
-                  <Filter className="h-4 w-4 text-gray-500" />
-                </button>
-              </div>
-              
-              <button className="bg-blue-900 text-white px-3 py-2 rounded-md flex items-center">
-                <Upload className="h-4 w-4 mr-1" />
-                <span>CSV Upload</span>
-              </button>
-              
-              <button className="bg-blue-500 text-white px-3 py-2 rounded-md flex items-center">
-                <Plus className="h-4 w-4 mr-1" />
-                <span>Add Listing</span>
-              </button>
+          {/* Recent Activity */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Lead Activity</h3>
+            <div className="space-y-3">
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity, index) => (
+                  <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                    <div className="flex items-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          New lead for {activity.service_name}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(activity.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <Activity className="h-4 w-4 text-gray-400" />
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">No recent activity</p>
+              )}
             </div>
           </div>
-          
-          {/* Listings Table */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="py-3 px-4 text-left w-10">
-                    <input 
-                      type="checkbox" 
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      onChange={() => {
-                        if (selectedRows.length === listings.length) {
-                          setSelectedRows([]);
-                        } else {
-                          setSelectedRows(listings.map(listing => listing.id));
-                        }
-                      }}
-                      checked={selectedRows.length === listings.length && listings.length > 0}
-                    />
-                  </th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Service/Tool Name</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Category</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Type</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Lead Price/Commission</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Provider</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Billing Contact</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Frequency</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Status</th>
-                  <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {listings.map((listing) => (
-                  <tr key={listing.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        checked={selectedRows.includes(listing.id)}
-                        onChange={() => toggleRowSelection(listing.id)}
-                      />
-                    </td>
-                    <td className="py-3 px-4 text-sm font-medium">{listing.name}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{listing.category}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{listing.type}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{listing.price}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{listing.provider}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{listing.billing}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{listing.frequency}</td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        listing.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {listing.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 flex space-x-2">
-                      <button className="text-gray-400 hover:text-blue-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      </button>
-                      <button className="text-gray-400 hover:text-blue-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button className="text-gray-400 hover:text-red-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Pagination */}
-          <div className="flex justify-between items-center mt-6">
-            <div className="text-sm text-gray-500">
-              Showing 1-4 of 4 listings
+        </div>
+
+        {/* Quick Stats */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">{kpis.totalServices}</div>
+              <div className="text-sm text-gray-600">Total Services</div>
             </div>
-            <div className="flex space-x-2">
-              <button className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-500 hover:bg-gray-50">
-                Previous
-              </button>
-              <button className="px-3 py-1 border border-gray-300 rounded-md text-sm bg-blue-500 text-white">
-                Next
-              </button>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">{kpis.leadsThisMonth}</div>
+              <div className="text-sm text-gray-600">Leads This Month</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">{kpis.leadsGrowth > 0 ? '+' : ''}{kpis.leadsGrowth}%</div>
+              <div className="text-sm text-gray-600">Growth Rate</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{charts.topCategories.length}</div>
+              <div className="text-sm text-gray-600">Active Categories</div>
             </div>
           </div>
         </div>

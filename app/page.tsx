@@ -3,8 +3,55 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Layout } from '@/components/layout/layout';
 import { SearchForm } from '@/components/search/search-form';
+import { createClient } from '@/lib/supabase/server';
+import FallbackImage from '@/components/ui/FallbackImage';
 
-export default function Home() {
+interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  category: string;
+  tags: string[];
+  status: string;
+  author_name: string;
+  author_title: string;
+  featured_image: string | null;
+  published_at: string | null;
+  created_at: string;
+}
+
+export default async function Home() {
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Helper function to estimate read time
+  const getReadTime = (content: string) => {
+    const wordsPerMinute = 200;
+    const textLength = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+    const readTime = Math.ceil(textLength / wordsPerMinute);
+    return `${readTime} min read`;
+  };
+
+  // Fetch latest blog posts from Supabase
+  const supabase = await createClient();
+  const { data: latestPosts, error } = await supabase
+    .from('blog_posts')
+    .select('*')
+    .eq('status', 'Published')
+    .order('published_at', { ascending: false })
+    .limit(3);
+
+  if (error) {
+    console.error('Error fetching blog posts:', error);
+  }
   return (
     <Layout>
       <div className='flex-1 w-full flex flex-col items-center bg-gray-50'>
@@ -1129,113 +1176,78 @@ export default function Home() {
             </p>
 
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
-              {/* Article 1 */}
-              <div className='bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300'>
-                <div className='bg-blue-100 h-48 flex items-center justify-center'>
-                  <svg
-                    xmlns='http://www.w3.org/2000/svg'
-                    className='h-12 w-12 text-gray-400'
-                    fill='none'
-                    viewBox='0 0 24 24'
-                    stroke='currentColor'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-                    />
+              {latestPosts && latestPosts.length > 0 ? (
+                latestPosts.map((post: BlogPost) => (
+                  <div key={post.id} className='bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300'>
+                    <div className='relative h-48 bg-gray-200 flex items-center justify-center'>
+                      {post.featured_image ? (
+                        <FallbackImage
+                          src={post.featured_image}
+                          alt={post.title}
+                          className="h-full w-full object-cover"
+                          fallbackSrc="https://via.placeholder.com/800x400?text=Image+Not+Found"
+                          fill
+                        />
+                      ) : (
+                        <svg
+                          xmlns='http://www.w3.org/2000/svg'
+                          className='h-12 w-12 text-gray-400'
+                          fill='none'
+                          viewBox='0 0 24 24'
+                          stroke='currentColor'
+                        >
+                          <path
+                            strokeLinecap='round'
+                            strokeLinejoin='round'
+                            strokeWidth={2}
+                            d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    <div className='p-6'>
+                      <div className='flex justify-between items-center mb-4'>
+                        <span className={`bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded ${post.category ? '' : 'hidden'}`}>
+                          {post.category || 'Uncategorized'}
+                        </span>
+                        <span className='text-gray-500 text-sm'>
+                          {formatDate(post.published_at || post.created_at)}
+                        </span>
+                      </div>
+                      <h3 className='font-bold text-xl mb-4'>{post.title}</h3>
+                      <div className='flex justify-between items-center'>
+                        <span className='text-gray-500 text-sm'>{getReadTime(post.content)}</span>
+                        <Link 
+                          href={`/insights/${post.slug}`} 
+                          className='text-orange-500 hover:text-orange-600 font-medium flex items-center'
+                        >
+                          Read More
+                          <svg xmlns='http://www.w3.org/2000/svg' className='h-4 w-4 ml-1' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+                            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
+                          </svg>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                // Fallback when no posts are available
+                <div className="col-span-3 flex flex-col items-center justify-center py-12 text-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
-                </div>
-                <div className='p-6'>
-                  <div className='flex justify-between items-center mb-4'>
-                    <span className='bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded'>Business Registration</span>
-                    <span className='text-gray-500 text-sm'>Dec 15, 2024</span>
-                  </div>
-                  <h3 className='font-bold text-xl mb-4'>5 Essential Steps to Register Your Business in Singapore</h3>
-                  <div className='flex justify-between items-center'>
-                    <span className='text-gray-500 text-sm'>5 min read</span>
-                    <a href='#' className='text-orange-500 hover:text-orange-600 font-medium flex items-center'>
-                      Read More
-                      <svg xmlns='http://www.w3.org/2000/svg' className='h-4 w-4 ml-1' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Article 2 */}
-              <div className='bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300'>
-                <div className='bg-blue-100 h-48 flex items-center justify-center'>
-                  <svg
-                    xmlns='http://www.w3.org/2000/svg'
-                    className='h-12 w-12 text-gray-400'
-                    fill='none'
-                    viewBox='0 0 24 24'
-                    stroke='currentColor'
+                  <h3 className="text-lg font-medium text-gray-900">No articles found</h3>
+                  <p className="mt-1 text-gray-500">
+                    There are no published articles yet. Check back soon!
+                  </p>
+                  <Link 
+                    href="/insights"
+                    className="mt-4 inline-flex items-center px-4 py-2 border border-orange-500 text-orange-500 rounded-md hover:bg-orange-500 hover:text-white transition-colors"
                   >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-                    />
-                  </svg>
+                    View All Articles
+                  </Link>
                 </div>
-                <div className='p-6'>
-                  <div className='flex justify-between items-center mb-4'>
-                    <span className='bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded'>AI Tools</span>
-                    <span className='text-gray-500 text-sm'>Dec 12, 2024</span>
-                  </div>
-                  <h3 className='font-bold text-xl mb-4'>Top AI Tools Every SME Should Consider in 2024</h3>
-                  <div className='flex justify-between items-center'>
-                    <span className='text-gray-500 text-sm'>7 min read</span>
-                    <a href='#' className='text-orange-500 hover:text-orange-600 font-medium flex items-center'>
-                      Read More
-                      <svg xmlns='http://www.w3.org/2000/svg' className='h-4 w-4 ml-1' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Article 3 */}
-              <div className='bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300'>
-                <div className='bg-blue-100 h-48 flex items-center justify-center'>
-                  <svg
-                    xmlns='http://www.w3.org/2000/svg'
-                    className='h-12 w-12 text-gray-400'
-                    fill='none'
-                    viewBox='0 0 24 24'
-                    stroke='currentColor'
-                  >
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth={2}
-                      d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-                    />
-                  </svg>
-                </div>
-                <div className='p-6'>
-                  <div className='flex justify-between items-center mb-4'>
-                    <span className='bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded'>Banking & Finance</span>
-                    <span className='text-gray-500 text-sm'>Dec 10, 2024</span>
-                  </div>
-                  <h3 className='font-bold text-xl mb-4'>Banking Solutions for Startups: Singapore vs Malaysia</h3>
-                  <div className='flex justify-between items-center'>
-                    <span className='text-gray-500 text-sm'>6 min read</span>
-                    <a href='#' className='text-orange-500 hover:text-orange-600 font-medium flex items-center'>
-                      Read More
-                      <svg xmlns='http://www.w3.org/2000/svg' className='h-4 w-4 ml-1' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

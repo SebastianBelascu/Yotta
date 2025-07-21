@@ -1,20 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { 
   LayoutDashboard, 
   ListChecks, 
   Users, 
-  FileText, 
-  BarChart3, 
-  Settings, 
-  HelpCircle, 
   LogOut,
-  ChevronDown,
   Menu,
-  X
+  X,
+  Briefcase,
+  BookOpen,
+  Wrench,
+  FileText,
+  HelpCircle,
+  Award,
+  Info,
+  Home
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -23,8 +27,41 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<{ email: string | null; name: string | null }>({ email: null, name: null });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUser({
+            email: user.email || 'admin@example.com',
+            name: user.user_metadata?.name || 'Admin User'
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still redirect even if there's an error
+      router.push('/auth/login');
+    }
+  };
   
   const navItems = [
     { 
@@ -33,10 +70,24 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       icon: <LayoutDashboard className="h-5 w-5" /> 
     },
     { 
-      name: 'Listings', 
-      href: '/admin/listings', 
-      icon: <ListChecks className="h-5 w-5" />,
-      active: true
+      name: 'Homepage', 
+      href: '/admin/homepage', 
+      icon: <Home className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Services', 
+      href: '/admin/services', 
+      icon: <Briefcase className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Tools', 
+      href: '/admin/tools', 
+      icon: <Wrench className="h-5 w-5" /> 
+    },
+    { 
+      name: 'Insights', 
+      href: '/admin/insights', 
+      icon: <BookOpen className="h-5 w-5" /> 
     },
     { 
       name: 'Leads', 
@@ -44,39 +95,33 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       icon: <Users className="h-5 w-5" /> 
     },
     { 
-      name: 'Providers', 
-      href: '/admin/providers', 
+      name: 'Vendors', 
+      href: '/admin/vendors', 
       icon: <Users className="h-5 w-5" /> 
     },
     { 
-      name: 'Pricing', 
-      href: '/admin/pricing', 
+      name: 'Privacy / Policy terms', 
+      href: '/admin/pages', 
       icon: <FileText className="h-5 w-5" /> 
     },
     { 
-      name: 'Analytics', 
-      href: '/admin/analytics', 
-      icon: <BarChart3 className="h-5 w-5" /> 
-    }
-  ];
-
-  const secondaryNavItems = [
-    { 
-      name: 'Settings', 
-      href: '/admin/settings', 
-      icon: <Settings className="h-5 w-5" /> 
-    },
-    { 
-      name: 'Help', 
-      href: '/admin/help', 
+      name: 'FAQ', 
+      href: '/admin/faq', 
       icon: <HelpCircle className="h-5 w-5" /> 
     },
     { 
-      name: 'Logout', 
-      href: '/logout', 
-      icon: <LogOut className="h-5 w-5" /> 
+      name: 'Why List With Us', 
+      href: '/admin/why-list', 
+      icon: <Award className="h-5 w-5" /> 
+    },
+    { 
+      name: 'About Us', 
+      href: '/admin/about-us', 
+      icon: <Info className="h-5 w-5" /> 
     }
   ];
+
+  const secondaryNavItems = [];
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -125,7 +170,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <Link 
                   href={item.href}
                   className={`flex items-center px-4 py-2 rounded-md ${
-                    item.active || pathname === item.href
+                    pathname === item.href
                       ? 'bg-blue-800 text-white'
                       : 'text-blue-200 hover:bg-blue-800 hover:text-white'
                   }`}
@@ -137,37 +182,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             ))}
           </ul>
 
-          <div className="mt-8">
-            <h3 className="px-6 text-xs font-semibold text-blue-400 uppercase tracking-wider">
-              Featured Pages
-            </h3>
-            <ul className="mt-2 space-y-1 px-2">
-              <li>
-                <Link 
-                  href="/admin/testimonials"
-                  className="flex items-center px-4 py-2 text-blue-200 rounded-md hover:bg-blue-800 hover:text-white"
-                >
-                  <span className="ml-3">Testimonials</span>
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/admin/faq"
-                  className="flex items-center px-4 py-2 text-blue-200 rounded-md hover:bg-blue-800 hover:text-white"
-                >
-                  <span className="ml-3">FAQ</span>
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/admin/insights"
-                  className="flex items-center px-4 py-2 text-blue-200 rounded-md hover:bg-blue-800 hover:text-white"
-                >
-                  <span className="ml-3">Insights/Blog</span>
-                </Link>
-              </li>
-            </ul>
-          </div>
+
         </nav>
 
         {/* Account section */}
@@ -175,29 +190,26 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <div className="h-10 w-10 rounded-full bg-blue-700 flex items-center justify-center">
-                <span className="text-lg font-medium">A</span>
+                <span className="text-lg font-medium text-white">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'A'}
+                </span>
               </div>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium">Admin User</p>
-              <p className="text-xs text-blue-300">admin@venturenext.com</p>
+              <p className="text-sm font-medium">{user.name || 'Admin User'}</p>
+              <p className="text-xs text-blue-300">{user.email || 'admin@example.com'}</p>
             </div>
-            <button className="ml-auto text-blue-300 hover:text-white">
-              <ChevronDown className="h-5 w-5" />
-            </button>
           </div>
           
-          <div className="mt-4 space-y-1">
-            {secondaryNavItems.map((item) => (
-              <Link 
-                key={item.name}
-                href={item.href}
-                className="flex items-center px-2 py-1.5 text-sm rounded-md text-blue-200 hover:bg-blue-800 hover:text-white"
-              >
-                {item.icon}
-                <span className="ml-2">{item.name}</span>
-              </Link>
-            ))}
+          <div className="mt-4 space-y-1">            
+            {/* Logout Button */}
+            <button 
+              onClick={handleLogout}
+              className="flex items-center px-2 py-1.5 text-sm rounded-md text-blue-200 hover:bg-blue-800 hover:text-white w-full text-left"
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="ml-2">Logout</span>
+            </button>
           </div>
         </div>
       </aside>

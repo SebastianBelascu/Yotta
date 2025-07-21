@@ -22,6 +22,9 @@ export function Navbar() {
     category: '',
     country: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -31,19 +34,47 @@ export function Navbar() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would handle the form submission, e.g. API call
-    console.log('Form submitted:', formData);
-    // Reset form and close popup
-    setFormData({
-      businessName: '',
-      email: '',
-      phone: '',
-      category: '',
-      country: ''
-    });
-    setShowPopup(false);
+    setIsSubmitting(true);
+    setSubmitError('');
+    
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'list-service',
+          data: formData
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit application');
+      }
+
+      setIsSubmitting(false);
+      setSubmitSuccess(true);
+      setFormData({
+        businessName: '',
+        email: '',
+        phone: '',
+        category: '',
+        country: ''
+      });
+      
+      // Close popup after 2 seconds to show success message
+      setTimeout(() => {
+        setShowPopup(false);
+        setSubmitSuccess(false);
+      }, 2000);
+    } catch (error) {
+      setIsSubmitting(false);
+      setSubmitError('Failed to submit application. Please try again.');
+      console.error('Error sending email:', error);
+    }
   };
 
   return (
@@ -261,12 +292,47 @@ export function Navbar() {
                   </div>
                 </div>
                 
+                {/* Success Message */}
+                {submitSuccess && (
+                  <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-md text-sm">
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Application submitted successfully! We'll review it and get back to you.
+                    </div>
+                  </div>
+                )}
+                
+                {/* Error Message */}
+                {submitError && (
+                  <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md text-sm">
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                      {submitError}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="mt-6">
                   <button
                     type="submit"
-                    className="w-full py-3 bg-[#ff5722] hover:bg-[#e64a19] text-white font-medium rounded-md transition-colors"
+                    disabled={isSubmitting}
+                    className="w-full py-3 bg-[#ff5722] hover:bg-[#e64a19] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors flex items-center justify-center"
                   >
-                    Submit Application
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Application'
+                    )}
                   </button>
                 </div>
                 

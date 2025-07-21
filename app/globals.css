@@ -41,3 +41,73 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Blog content styling */
+.blog-content {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+.blog-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 1.5rem 0 1rem;
+}
+
+.blog-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.5rem 0 1rem;
+}
+
+.blog-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.blog-content h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.blog-content p {
+  margin: 1rem 0;
+}
+
+.blog-content ul {
+  list-style-type: disc !important;
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.blog-content ol {
+  list-style-type: decimal !important;
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.blog-content li {
+  margin: 0.5rem 0;
+  display: list-item !important;
+}
+
+.blog-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.blog-content strong,
+.blog-content b {
+  font-weight: 700 !important;
+}
+
+.blog-content em,
+.blog-content i {
+  font-style: italic !important;
+}
+
+.blog-content u {
+  text-decoration: underline !important;
+}

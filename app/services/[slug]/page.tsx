@@ -5,6 +5,7 @@ import { Layout } from '@/components/layout/layout';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 // Helper function to convert slug to readable name
 function slugToName(slug: string): string {
@@ -23,141 +24,316 @@ function nameToSlug(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-// Mock service data with slugs
-const mockServices = [
-  {
-    id: 1,
-    slug: 'techflow',
-    name: 'TechFlow Digital Marketing Agency',
-    category: 'Performance Marketing Agencies',
-    description: 'We help startups and SMEs grow their digital presence with performance marketing strategies that actually convert.',
-    longDescription: 'At TechFlow Digital, we specialize in performance-driven marketing strategies that help businesses scale efficiently. Our team of certified experts combines data analytics, creative storytelling, and cutting-edge technology to deliver measurable results. We have helped over 200+ businesses increase their revenue by an average of 300% within the first 6 months.',
-    rating: 4.9,
-    reviewCount: 856,
-    price: 'MYR 800/month',
-    priceNote: 'Starting price',
-    features: [
-      'Monthly financial statements and reports',
-      'Bookkeeping and transaction recording',
-      'Financial advisory and consultation',
-      'Tax preparation and filing assistance',
-      'GST/VAT compliance and filing',
-      'Cloud-based accounting software setup'
-    ],
-    benefits: [
-      'Dedicated account manager',
-      'Monthly financial review meetings',
-      'Real-time access to financial dashboard',
-      'Tax planning and optimization',
-      'Compliance monitoring and alerts'
-    ],
-    faqs: [
-      {
-        question: 'How long does the setup process take?',
-        answer: 'The typical setup process takes 5-7 business days once all required documentation is submitted.'
-      },
-      {
-        question: 'What documents do I need to provide?',
-        answer: 'You will need to provide identification documents, proof of address, and business registration details if applicable.'
-      },
-      {
-        question: 'Is there ongoing support after setup?',
-        answer: 'Yes, we provide ongoing customer support to help with any questions or issues that may arise after your initial setup.'
-      },
-      {
-        question: 'Can I upgrade my plan later?',
-        answer: 'Yes, you can upgrade your plan at any time to access additional features and services.'
-      }
-    ]
-  },
-  {
-    id: 2,
-    slug: 'seo',
-    name: 'SEO Optimization Service',
-    category: 'Digital Marketing',
-    description: 'Boost your website ranking with our comprehensive SEO services tailored for small businesses.',
-    longDescription: 'Our SEO Optimization Service helps businesses improve their online visibility and drive organic traffic. We use data-driven strategies to optimize your website for search engines and improve your rankings for relevant keywords.',
-    rating: 4.7,
-    reviewCount: 425,
-    price: 'MYR 600/month',
-    priceNote: 'Starting price',
-    features: [
-      'Keyword research and optimization',
-      'On-page SEO improvements',
-      'Content optimization',
-      'Technical SEO audits',
-      'Backlink building',
-      'Monthly performance reports'
-    ],
-    benefits: [
-      'Improved search engine rankings',
-      'Increased organic traffic',
-      'Higher quality leads',
-      'Better user experience',
-      'Competitive advantage'
-    ],
-    faqs: [
-      {
-        question: 'How long does it take to see results?',
-        answer: 'SEO is a long-term strategy. While some improvements can be seen within weeks, significant results typically take 3-6 months.'
-      },
-      {
-        question: 'Do you guarantee first page rankings?',
-        answer: 'We cannot guarantee specific rankings as search engines constantly update their algorithms. However, we use proven strategies to improve your visibility.'
-      }
-    ]
-  }
-];
+// Database interfaces matching the actual schema
+interface Service {
+  id: string;
+  name: string;
+  tagline: string;
+  main_categories: string[];
+  sub_categories: string[];
+  logo_url: string;
+  banner_url: string;
+  description: string;
+  who_is_this_for: string[];
+  type_of_service: string;
+  highlights: string[];
+  whats_included: string[];
+  price_from: number;
+  currency: string;
+  turnaround_time: string;
+  free_consultation: boolean;
+  portfolio_url: string;
+  client_logos: string[];
+  email_for_leads: string;
+  vendor_id: string;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Vendor {
+  id: string;
+  name: string;
+  email: string;
+  created_at: string;
+}
 
 export default function ServiceDetailsPage({ params: paramsPromise }: { params: Promise<{ slug: string }> }) {
   const [showPopup, setShowPopup] = useState(false);
+  const [serviceProvider, setServiceProvider] = useState<any>(null);
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [similarServices, setSimilarServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    company: '',
+    service: '',
+    needs: ''
+  });
   const pathname = usePathname();
   const params = React.use(paramsPromise) as { slug: string };
   
-  // Find the service based on slug
-  const serviceProvider = mockServices.find(service => service.slug === params.slug) || {
-    id: 0,
-    slug: params.slug,
-    name: slugToName(params.slug),
-    category: 'Service Category',
-    description: 'Service provider description here',
-    longDescription: 'Detailed description of the service provider would go here.',
-    rating: 4.5,
-    reviewCount: 500,
-    price: 'MYR 500/month',
-    priceNote: 'Starting price',
-    features: ['Feature 1', 'Feature 2', 'Feature 3', 'Feature 4', 'Feature 5'],
-    benefits: [
-      'Benefit 1',
-      'Benefit 2',
-      'Benefit 3',
-      'Benefit 4',
-      'Benefit 5'
-    ],
-    faqs: [
-      {
-        question: 'Frequently Asked Question 1',
-        answer: 'Answer to frequently asked question 1.'
-      },
-      {
-        question: 'Frequently Asked Question 2',
-        answer: 'Answer to frequently asked question 2.'
+  // Fetch service data from database
+  useEffect(() => {
+    async function fetchServiceData() {
+      try {
+        const supabase = createClient();
+        
+        // Get all services
+        const { data: services, error: servicesError } = await supabase
+          .from('services')
+          .select('*');
+          
+        if (servicesError || !services) {
+          console.error('Error fetching services:', servicesError);
+          setLoading(false);
+          return;
+        }
+        
+        // Find service by slug (name) like in tools
+        const service = services.find(s => nameToSlug(s.name) === params.slug);
+        
+        if (!service) {
+          // Create fallback service matching the schema
+          const fallbackService = {
+            id: params.slug,
+            name: slugToName(params.slug),
+            tagline: 'Professional service provider',
+            main_categories: ['Business Services'],
+            sub_categories: [],
+            logo_url: '',
+            banner_url: '',
+            description: 'Professional service provider offering quality solutions for your business needs.',
+            who_is_this_for: ['Small businesses', 'Startups', 'Entrepreneurs'],
+            type_of_service: 'Professional Service',
+            highlights: ['Experienced team', 'Quality results', 'Timely delivery', 'Customer satisfaction'],
+            whats_included: ['Professional consultation', 'Expert guidance', 'Quality service delivery', 'Ongoing support'],
+            price_from: 500,
+            currency: 'MYR',
+            turnaround_time: '3-5 business days',
+            free_consultation: true,
+            portfolio_url: '',
+            client_logos: [],
+            email_for_leads: '',
+            vendor_id: '',
+            published: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            // Add UI-specific fields
+            region_served: ['Malaysia', 'Singapore', 'Global']
+          };
+          setServiceProvider(fallbackService);
+          setLoading(false);
+          return;
+        }
+        
+        // Transform service data to match UI expectations with proper schema mapping
+        const transformedService = {
+          ...service,
+          // Map schema fields to UI expectations
+          category: Array.isArray(service.main_categories) && service.main_categories.length > 0 ? service.main_categories[0] : 'Business Services',
+          longDescription: service.description || 'Professional service provider offering quality solutions for your business needs.',
+          features: Array.isArray(service.whats_included) && service.whats_included.length > 0 ? service.whats_included : ['Professional consultation', 'Expert guidance', 'Quality service delivery'],
+          benefits: Array.isArray(service.highlights) && service.highlights.length > 0 ? service.highlights : ['Experienced team', 'Quality results', 'Timely delivery'],
+          price: service.price_from ? `${service.currency || 'MYR'} ${service.price_from}` : 'Contact for pricing',
+          priceNote: 'Starting price',
+          // Ensure arrays are properly initialized
+          main_categories: Array.isArray(service.main_categories) ? service.main_categories : ['Business Services'],
+          sub_categories: Array.isArray(service.sub_categories) ? service.sub_categories : [],
+          who_is_this_for: Array.isArray(service.who_is_this_for) ? service.who_is_this_for : ['Small businesses', 'Startups', 'Entrepreneurs'],
+          highlights: Array.isArray(service.highlights) ? service.highlights : ['Experienced team', 'Quality results', 'Timely delivery'],
+          whats_included: Array.isArray(service.whats_included) ? service.whats_included : ['Professional consultation', 'Expert guidance', 'Quality service delivery'],
+          // Note: region_served doesn't exist in schema - services are global
+          region_served: ['Malaysia', 'Singapore', 'Global'], // Default regions for display
+          // Ensure required fields have defaults
+          name: service.name || 'Professional Service',
+          tagline: service.tagline || 'Professional service provider',
+          description: service.description || 'Professional service provider offering quality solutions for your business needs.',
+          type_of_service: service.type_of_service || 'Professional Service',
+          turnaround_time: service.turnaround_time || '3-5 business days',
+          free_consultation: service.free_consultation || false,
+          price_from: service.price_from || 500,
+          currency: service.currency || 'MYR',
+          logo_url: service.logo_url || '',
+          banner_url: service.banner_url || '',
+          vendor_id: service.vendor_id || null,
+          published: service.published || false
+        };
+        
+        setServiceProvider(transformedService);
+        
+        // Fetch vendor data if available
+        if (service.vendor_id) {
+          const { data: vendorData } = await supabase
+            .from('vendors')
+            .select('*')
+            .eq('id', service.vendor_id)
+            .single();
+          
+          if (vendorData) {
+            setVendor(vendorData);
+          }
+        }
+        
+        // Get similar services
+        const relatedServices = services
+          .filter(s => s.id !== service.id && s.published)
+          .slice(0, 4)
+          .map(s => ({
+            id: s.id,
+            slug: nameToSlug(s.name),
+            name: s.name,
+            category: s.main_categories?.[0] || 'Business Services',
+            price: `${s.currency} ${s.price_from}`,
+            description: s.tagline || s.description?.substring(0, 100) + '...'
+          }));
+        
+        setSimilarServices(relatedServices);
+        setLoading(false);
+        
+      } catch (error) {
+        console.error('Error fetching service data:', error);
+        setLoading(false);
       }
-    ]
-  };
-
-  // Generate similar services based on the current service
-  const similarServices = mockServices
-    .filter(service => service.slug !== params.slug)
-    .slice(0, 4)
-    .map(service => ({
-      id: service.id,
-      slug: service.slug,
-      name: service.name,
-      category: service.category,
-      price: service.price,
-      description: service.description
+    }
+    
+    fetchServiceData();
+  }, [params.slug]);
+  
+  // Handle form input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
     }));
+  };
+  
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!serviceProvider || !vendor) {
+      alert('Service information not available. Please try again.');
+      return;
+    }
+    
+    setSubmitting(true);
+    
+    try {
+      const leadData = {
+        service_id: serviceProvider.id,
+        provider_id: serviceProvider.vendor_id || vendor.id,
+        metadata: {
+          contact_person: `${formData.firstName} ${formData.lastName}`.trim(),
+          email: formData.email,
+          phone: formData.phone,
+          company_name: formData.company,
+          service_type: formData.service,
+          message: formData.needs
+        }
+      };
+      
+      // Create lead in database
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(leadData),
+      });
+      
+      if (response.ok) {
+        // Send email to service provider if email_for_leads is available
+        if (serviceProvider.email_for_leads) {
+          try {
+            await fetch('/api/send-email', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                type: 'quote-request',
+                data: {
+                  serviceName: serviceProvider.name,
+                  providerEmail: serviceProvider.email_for_leads,
+                  firstName: formData.firstName,
+                  lastName: formData.lastName,
+                  email: formData.email,
+                  phone: formData.phone,
+                  company: formData.company,
+                  service: formData.service,
+                  needs: formData.needs
+                }
+              }),
+            });
+          } catch (emailError) {
+            console.error('Error sending email to provider:', emailError);
+            // Don't fail the entire process if email fails
+          }
+        }
+        setSubmitSuccess(true);
+        // Reset form
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          company: '',
+          service: '',
+          needs: ''
+        });
+        
+        // Show success message for 3 seconds then close popup
+        setTimeout(() => {
+          setSubmitSuccess(false);
+          setShowPopup(false);
+        }, 3000);
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.error || 'Failed to submit quote request'}`);
+      }
+    } catch (error) {
+      console.error('Error submitting lead:', error);
+      alert('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex-1 w-full flex items-center justify-center bg-gray-50 min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading service details...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  if (!serviceProvider) {
+    return (
+      <Layout>
+        <div className="flex-1 w-full flex items-center justify-center bg-gray-50 min-h-screen">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Service Not Found</h1>
+            <p className="text-gray-600 mb-6">The service you're looking for doesn't exist.</p>
+            <Link href="/services/search" className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-md">
+              Browse All Services
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -189,13 +365,27 @@ export default function ServiceDetailsPage({ params: paramsPromise }: { params: 
             
             {/* Form fields */}
             <div className="p-4 sm:p-6">
-              <form>
+              {submitSuccess ? (
+                <div className="text-center py-8">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Quote Request Sent!</h3>
+                  <p className="text-gray-600">We've received your request and will get back to you soon.</p>
+                </div>
+              ) : (
+              <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">First Name <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       id="firstName"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
                       required
                       className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
@@ -205,6 +395,9 @@ export default function ServiceDetailsPage({ params: paramsPromise }: { params: 
                     <input
                       type="text"
                       id="lastName"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
                       required
                       className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
@@ -216,6 +409,9 @@ export default function ServiceDetailsPage({ params: paramsPromise }: { params: 
                   <input
                     type="email"
                     id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
                     required
                     className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
@@ -226,6 +422,9 @@ export default function ServiceDetailsPage({ params: paramsPromise }: { params: 
                   <input
                     type="tel"
                     id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
                     required
                     className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
@@ -236,6 +435,9 @@ export default function ServiceDetailsPage({ params: paramsPromise }: { params: 
                   <input
                     type="text"
                     id="company"
+                    name="company"
+                    value={formData.company}
+                    onChange={handleInputChange}
                     className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
@@ -244,6 +446,9 @@ export default function ServiceDetailsPage({ params: paramsPromise }: { params: 
                   <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-1">What service are you interested in? <span className="text-red-500">*</span></label>
                   <select
                     id="service"
+                    name="service"
+                    value={formData.service}
+                    onChange={handleInputChange}
                     required
                     className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
@@ -260,6 +465,9 @@ export default function ServiceDetailsPage({ params: paramsPromise }: { params: 
                   <label htmlFor="needs" className="block text-sm font-medium text-gray-700 mb-1">Tell us more about your specific needs</label>
                   <textarea
                     id="needs"
+                    name="needs"
+                    value={formData.needs}
+                    onChange={handleInputChange}
                     rows={4}
                     placeholder="What specific challenges are you facing? What features are most important to you?"
                     className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -277,361 +485,335 @@ export default function ServiceDetailsPage({ params: paramsPromise }: { params: 
                 </button>
                 <button 
                   type="submit" 
-                  className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md font-medium flex items-center"
+                  disabled={submitting}
+                  className="px-6 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white rounded-md font-medium flex items-center"
                 >
-                  Get My Quote
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
+                  {submitting ? 'Sending...' : 'Get My Quote'}
+                  {submitting ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white ml-2"></div>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  )}
                 </button>
               </div>
               </form>
+              )}
             </div>
           </div>
         </div>
       )}
-      <div className='flex-1 w-full flex flex-col items-center bg-gray-50'>
-        {/* Header Image Section */}
-        <section className='w-full bg-white'>
-          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
-            <div className='relative w-full h-48 md:h-64 lg:h-80 bg-gradient-to-r from-blue-100 to-teal-100 rounded-lg overflow-hidden'>
-              <div className='absolute inset-0 opacity-20'>
-                <Image 
-                  src="/images/dashboard-analytics.jpg" 
-                  alt="Analytics Dashboard" 
-                  width={1200}
-                  height={400}
-                  className='w-full h-full object-cover opacity-50'
-                />
-              </div>
-              <div className='absolute bottom-0 left-0 p-6 md:p-8 flex items-center'>
-                <div className='bg-white p-3 rounded-lg shadow-md mr-4'>
-                  <div className='w-16 h-16 bg-gray-200 rounded flex items-center justify-center'>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
+      <div className="min-h-screen bg-gray-50">
+        {/* Hero Section */}
+        <div className="relative">
+          {/* Banner Image */}
+          {serviceProvider.banner_url && serviceProvider.banner_url.trim() !== '' ? (
+            <div className="h-64 md:h-80 relative">
+              <Image
+                src={serviceProvider.banner_url}
+                alt={`${serviceProvider.name} banner`}
+                fill
+                className="object-cover"
+                priority
+                unoptimized={serviceProvider.banner_url.startsWith('http')}
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-40" />
+            </div>
+          ) : (
+            <div className="h-64 md:h-80 bg-gradient-to-r from-blue-600 to-purple-600" />
+          )}
+          
+          {/* Service Header */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex items-end gap-6">
+                {/* Logo */}
+                <div className="flex-shrink-0">
+                  {serviceProvider.logo_url && serviceProvider.logo_url.trim() !== '' ? (
+                    <Image
+                      src={serviceProvider.logo_url}
+                      alt={`${serviceProvider.name} logo`}
+                      width={80}
+                      height={80}
+                      className="rounded-xl border-4 border-white shadow-lg"
+                      unoptimized={serviceProvider.logo_url.startsWith('http')}
+                    />
+                  ) : (
+                    <div className="w-20 h-20 bg-white rounded-xl border-4 border-white shadow-lg flex items-center justify-center">
+                      <span className="text-2xl font-bold text-gray-600">
+                        {serviceProvider.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h1 className='text-2xl md:text-3xl font-bold text-gray-800'>{serviceProvider.name}</h1>
-                  <div className='flex items-center mt-1'>
-                    <span className='bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded'>{serviceProvider.category}</span>
+                
+                {/* Service Info */}
+                <div className="flex-1 text-white">
+                  <h1 className="text-3xl md:text-4xl font-bold mb-2">{serviceProvider.name}</h1>
+                  <p className="text-lg md:text-xl text-gray-200 mb-4">{serviceProvider.tagline}</p>
+                  
+                  {/* Categories */}
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(serviceProvider.main_categories) && serviceProvider.main_categories.map((category: string, index: number) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white bg-opacity-20 text-white backdrop-blur-sm"
+                      >
+                        {category}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </section>
+          
+          {/* Back Button */}
+          <div className="absolute top-6 left-6">
+            <Link
+              href="/services"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 text-white rounded-lg hover:bg-opacity-30 transition-all backdrop-blur-sm"
+            >
+              Back to Services
+            </Link>
+          </div>
+        </div>
 
-        {/* Service Info Section */}
-        <section className='w-full bg-white'>
-          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-            <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
-              {/* Left Column - Description */}
-              <div className='lg:col-span-2'>
-                <div className='mb-8'>
-                  <h2 className='text-xl font-bold mb-4'>About Our Services</h2>
-                  <p className='text-gray-700'>{serviceProvider.longDescription}</p>
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Quick Info Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Pricing */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border">
+                  <div className="flex items-center gap-3 mb-2">
+                    <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                    <h3 className="font-semibold text-gray-900">Pricing</h3>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {serviceProvider.currency} {serviceProvider.price_from}
+                  </div>
+                  <div className="text-sm text-gray-500">Starting price</div>
                 </div>
-                
-                {/* Features */}
-                <div className='mb-8'>
-                  <h2 className='text-xl font-bold mb-4'>What's Included</h2>
-                  <ul className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-                    {serviceProvider.features.map((feature, index) => (
-                      <li key={index} className='flex items-start'>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+
+                {/* Turnaround Time */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border">
+                  <div className="flex items-center gap-3 mb-2">
+                    <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 className="font-semibold text-gray-900">Turnaround</h3>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {serviceProvider.turnaround_time || '3-5 business days'}
+                  </div>
+                </div>
+
+                {/* Regions */}
+                <div className="bg-white rounded-lg p-6 shadow-sm border">
+                  <div className="flex items-center gap-3 mb-2">
+                    <svg className="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 className="font-semibold text-gray-900">Available In</h3>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {Array.isArray(serviceProvider.region_served) && serviceProvider.region_served.slice(0, 2).join(', ')}
+                    {Array.isArray(serviceProvider.region_served) && serviceProvider.region_served.length > 2 && (
+                      <span> +{serviceProvider.region_served.length - 2} more</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="bg-white rounded-lg p-6 shadow-sm border">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">About {serviceProvider.name}</h2>
+                <div className="prose max-w-none text-gray-600">
+                  <p className="text-lg leading-relaxed">{serviceProvider.description || serviceProvider.longDescription}</p>
+                </div>
+              </div>
+              {/* Who Is This For */}
+              {Array.isArray(serviceProvider.who_is_this_for) && serviceProvider.who_is_this_for.length > 0 && (
+                <div className="bg-white rounded-lg p-6 shadow-sm border">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Who Is This For</h2>
+                  <div className="flex flex-wrap gap-3">
+                    {serviceProvider.who_is_this_for.map((audience: string, index: number) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                      >
+                        <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        <span className='text-gray-700'>{feature}</span>
-                      </li>
+                        {audience}
+                      </span>
                     ))}
-                  </ul>
+                  </div>
                 </div>
-                
-                {/* Benefits */}
-                <div className='mb-8'>
-                  <h2 className='text-xl font-bold mb-4'>Benefits</h2>
-                  <ul className='grid grid-cols-1 md:grid-cols-2 gap-3'>
-                    {serviceProvider.benefits.map((benefit, index) => (
-                      <li key={index} className='flex items-start'>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500 mr-2 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              )}
+              {/* What's Included */}
+              {Array.isArray(serviceProvider.features) && serviceProvider.features.length > 0 && (
+                <div className="bg-white rounded-lg p-6 shadow-sm border">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">What's Included</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {serviceProvider.features.map((feature: string, index: number) => (
+                      <div key={index} className="flex items-start gap-3">
+                        <svg className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
-                        <span className='text-gray-700'>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                {/* Key Features */}
-                <div className='mb-8'>
-                  <h2 className='text-xl font-bold mb-4'>Key Features</h2>
-                  <div className='grid grid-cols-1 md:grid-cols-2 gap-y-4'>
-                    {serviceProvider.features.map((feature, index) => (
-                      <div key={index} className='flex items-start'>
-                        <div className='text-orange-500 mr-3'>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                        </div>
-                        <span className='text-gray-700'>{feature}</span>
+                        <span className="text-gray-700">{feature}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-              
-              {/* Right Column - Pricing */}
-              <div>
-                <div className='bg-yellow-50 rounded-lg p-6 mb-6'>
-                  <div className='text-center mb-4'>
-                    <h2 className='text-2xl font-bold text-gray-900 mb-1'>{serviceProvider.price}</h2>
-                    <p className='text-sm text-gray-600'>{serviceProvider.priceNote}</p>
+              )}
+              {/* Benefits */}
+              {Array.isArray(serviceProvider.benefits) && serviceProvider.benefits.length > 0 && (
+                <div className="bg-white rounded-lg p-6 shadow-sm border">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Key Benefits</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {serviceProvider.benefits.map((benefit: string, index: number) => (
+                      <div key={index} className="flex items-start gap-3">
+                        <svg className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-gray-700">{benefit}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* CTA Card */}
+              <div className="bg-white rounded-lg p-6 shadow-sm border sticky top-6">
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Ready to get started?</h3>
+                  <p className="text-gray-600 mb-6">Get a quote for this service today</p>
+                  
+                  {/* Pricing Display */}
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-3xl font-bold text-gray-900">
+                      {serviceProvider.currency} {serviceProvider.price_from}
+                    </div>
+                    <div className="text-sm text-gray-500">Starting price</div>
+                    {serviceProvider.free_consultation && (
+                      <div className="text-sm text-green-600 font-medium">Free consultation included</div>
+                    )}
                   </div>
                   
-                  <div className='space-y-3 mb-6'>
+                  {/* Action Buttons */}
+                  <div className="space-y-3">
                     <button 
                       onClick={() => setShowPopup(true)}
-                      className='w-full flex items-center justify-center bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 py-3 px-4 rounded-md'
+                      className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
-                      Get More Details
+                      Get Quote
                     </button>
                     
                     <button 
                       onClick={() => setShowPopup(true)}
-                      className='w-full bg-orange-500 hover:bg-orange-600 text-white py-3 px-4 rounded-md font-medium flex items-center justify-center'
+                      className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Get a Quote
+                      Get More Details
                     </button>
                   </div>
                 </div>
-                
-                {/* Service Details Box */}
-                <div className='bg-white border border-gray-200 rounded-lg overflow-hidden mb-6'>
-                  <h3 className='text-lg font-bold px-5 py-4 border-b border-gray-200'>Service Details</h3>
-                  
-                  <div className='px-5 py-3 border-b border-gray-100'>
-                    <div className='flex justify-between items-center'>
-                      <span className='text-gray-600'>Service Type</span>
-                      <span className='bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded'>Retainer / Monthly</span>
-                    </div>
-                  </div>
-                  
-                  <div className='px-5 py-3 border-b border-gray-100'>
-                    <div className='flex flex-col'>
-                      <span className='text-gray-600 mb-2'>Best For</span>
-                      <div className='flex flex-wrap gap-2'>
-                        <span className='bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded'>Solopreneurs</span>
-                        <span className='bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded'>Early-stage Startups</span>
-                        <span className='bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded'>SMEs</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className='px-5 py-3 border-b border-gray-100'>
-                    <div className='flex justify-between items-center'>
-                      <span className='text-gray-600'>Turnaround Time</span>
-                      <span className='font-medium'>3–5 Business Days</span>
-                    </div>
-                  </div>
-                  
-                  <div className='px-5 py-3 border-b border-gray-100'>
-                    <div className='flex justify-between items-center'>
-                      <span className='text-gray-600'>Free Consultation</span>
-                      <span className='text-green-600 font-medium'>Yes</span>
-                    </div>
-                  </div>
-                  
-                  <div className='px-5 py-3'>
-                    <div className='flex flex-col'>
-                      <span className='text-gray-600 mb-2'>Regions Served</span>
-                      <div className='flex flex-wrap gap-2'>
-                        <span className='inline-flex items-center bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded'>
-                          <svg className="w-3 h-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                          </svg>
-                          Malaysia
-                        </span>
-                        <span className='inline-flex items-center bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1 rounded'>
-                          <svg className="w-3 h-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                          </svg>
-                          Singapore
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
-            </div>
-          </div>
-        </section>
+              {/* Service Details */}
+              <div className="bg-white rounded-lg p-6 shadow-sm border">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Service Details</h3>
+                <div className="space-y-4">
+                  {/* Service Type */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Service Type</h4>
+                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                      {serviceProvider.type_of_service || 'Professional Service'}
+                    </span>
+                  </div>
 
-        {/* Similar Services */}
-        <section className='w-full bg-gray-50 py-12'>
-          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-            <h2 className='text-2xl font-bold text-center mb-2'>Similar Services</h2>
-            <p className='text-center text-gray-600 mb-8'>Discover other financial services that might interest you</p>
-            
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-              {/* Service 1 */}
-              <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                <div className='p-4'>
-                  <div className='flex items-center mb-2'>
-                    <div className='w-10 h-10 rounded-full bg-gray-200 overflow-hidden mr-3'>
-                      <Image 
-                        src="/images/avatar-1.jpg" 
-                        alt="Elite Tax Advisors" 
-                        width={40} 
-                        height={40}
-                        className='w-full h-full object-cover'
-                      />
-                    </div>
-                    <div>
-                      <h3 className='font-medium'>Elite Tax Advisors</h3>
-                      <div className='flex items-center'>
-                        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className='text-sm ml-1'>4.8</span>
-                      </div>
+                  {/* Turnaround Time */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Turnaround Time</h4>
+                    <span className="text-sm text-gray-600">
+                      {serviceProvider.turnaround_time || '3-5 business days'}
+                    </span>
+                  </div>
+
+                  {/* Free Consultation */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Free Consultation</h4>
+                    <span className={`text-sm font-medium ${
+                      serviceProvider.free_consultation ? 'text-green-600' : 'text-gray-600'
+                    }`}>
+                      {serviceProvider.free_consultation ? 'Yes' : 'No'}
+                    </span>
+                  </div>
+
+                  {/* All Regions */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Available Regions</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.isArray(serviceProvider.region_served) && serviceProvider.region_served.map((region: string, index: number) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800"
+                        >
+                          {region}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                  
-                  <p className='text-sm text-gray-600 mb-3'>Comprehensive tax planning and advisory</p>
-                  
-                  <div className='flex justify-between items-center mb-3'>
-                    <span className='bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded'>Tax Advisory Services</span>
-                    <span className='font-bold'>MYR 600<span className='text-sm font-normal text-gray-500'>/mo</span></span>
+
+                  {/* All Categories */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Categories</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.isArray(serviceProvider.main_categories) && serviceProvider.main_categories.map((category: string, index: number) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800"
+                        >
+                          {category}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  
-                  <Link href='/services/elite-tax-advisors' className='block w-full py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white text-center rounded transition-colors'>
-                    View Details
-                  </Link>
                 </div>
               </div>
-              
-              {/* Service 2 */}
-              <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                <div className='p-4'>
-                  <div className='flex items-center mb-2'>
-                    <div className='w-10 h-10 rounded-full bg-gray-200 overflow-hidden mr-3'>
-                      <Image 
-                        src="/images/avatar-2.jpg" 
-                        alt="Virtual CFO Partners" 
-                        width={40} 
-                        height={40}
-                        className='w-full h-full object-cover'
-                      />
-                    </div>
-                    <div>
-                      <h3 className='font-medium'>Virtual CFO Partners</h3>
-                      <div className='flex items-center'>
-                        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className='text-sm ml-1'>4.7</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <p className='text-sm text-gray-600 mb-3'>Strategic financial leadership for growing companies</p>
-                  
-                  <div className='flex justify-between items-center mb-3'>
-                    <span className='bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded'>Virtual CFO Services</span>
-                    <span className='font-bold'>MYR 1200<span className='text-sm font-normal text-gray-500'>/mo</span></span>
-                  </div>
-                  
-                  <Link href='/services/virtual-cfo-partners' className='block w-full py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white text-center rounded transition-colors'>
-                    View Details
-                  </Link>
-                </div>
-              </div>
-              
-              {/* Service 3 */}
-              <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                <div className='p-4'>
-                  <div className='flex items-center mb-2'>
-                    <div className='w-10 h-10 rounded-full bg-gray-200 overflow-hidden mr-3'>
-                      <Image 
-                        src="/images/avatar-3.jpg" 
-                        alt="Payroll Pro Services" 
-                        width={40} 
-                        height={40}
-                        className='w-full h-full object-cover'
-                      />
-                    </div>
-                    <div>
-                      <h3 className='font-medium'>Payroll Pro Services</h3>
-                      <div className='flex items-center'>
-                        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className='text-sm ml-1'>4.6</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <p className='text-sm text-gray-600 mb-3'>Automated payroll solutions for businesses</p>
-                  
-                  <div className='flex justify-between items-center mb-3'>
-                    <span className='bg-green-100 text-green-800 text-xs px-2 py-1 rounded'>Payroll Providers</span>
-                    <span className='font-bold'>MYR 300<span className='text-sm font-normal text-gray-500'>/mo</span></span>
-                  </div>
-                  
-                  <Link href='/services/payroll-pro-services' className='block w-full py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white text-center rounded transition-colors'>
-                    View Details
-                  </Link>
-                </div>
-              </div>
-              
-              {/* Service 4 */}
-              <div className='bg-white rounded-lg shadow-sm overflow-hidden'>
-                <div className='p-4'>
-                  <div className='flex items-center mb-2'>
-                    <div className='w-10 h-10 rounded-full bg-gray-200 overflow-hidden mr-3'>
-                      <Image 
-                        src="/images/avatar-4.jpg" 
-                        alt="Compliance Experts" 
-                        width={40} 
-                        height={40}
-                        className='w-full h-full object-cover'
-                      />
-                    </div>
-                    <div>
-                      <h3 className='font-medium'>Compliance Experts</h3>
-                      <div className='flex items-center'>
-                        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className='text-sm ml-1'>4.5</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <p className='text-sm text-gray-600 mb-3'>Regulatory compliance and reporting solutions</p>
-                  
-                  <div className='flex justify-between items-center mb-3'>
-                    <span className='bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded'>Compliance Services</span>
-                    <span className='font-bold'>MYR 450<span className='text-sm font-normal text-gray-500'>/mo</span></span>
-                  </div>
-                  
-                  <Link href='/services/compliance-experts' className='block w-full py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white text-center rounded transition-colors'>
-                    View Details
-                  </Link>
-                </div>
+
+              {/* Related Services */}
+              <div className="bg-white rounded-lg p-6 shadow-sm border">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Explore More Services</h3>
+                <Link
+                  href="/services/search"
+                  className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Browse all services
+                  <svg className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </Link>
               </div>
             </div>
           </div>
-        </section>
+        </div>
       </div>
+
     </Layout>
   );
 }

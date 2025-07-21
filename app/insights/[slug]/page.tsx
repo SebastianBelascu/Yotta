@@ -3,14 +3,39 @@ import Link from 'next/link';
 import { Layout } from '@/components/layout/layout';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
+import { createClient } from '@/lib/supabase/server';
+import FallbackImage from '@/components/ui/FallbackImage';
+
+interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  category: string;
+  tags: string[];
+  status: string;
+  author_name: string;
+  author_title: string;
+  featured_image: string | null;
+  published_at: string | null;
+  created_at: string;
+}
 
 type GenerateMetadataProps = {
-  params: { slug: string }
+  params: Promise<{ slug: string }>
 }
 
 export async function generateMetadata({ params }: GenerateMetadataProps): Promise<Metadata> {
-  // Find the article matching the slug
-  const article = articles.find(article => article.slug === params.slug);
+  const { slug } = await params;
+
+  // Fetch the article matching the slug from Supabase
+  const supabase = await createClient();
+  const { data: article } = await supabase
+    .from('blog_posts')
+    .select('*')
+    .eq('slug', slug)
+    .eq('status', 'Published')
+    .single();
   
   if (!article) {
     return {
@@ -19,121 +44,70 @@ export async function generateMetadata({ params }: GenerateMetadataProps): Promi
     };
   }
   
+  // Create a clean excerpt for meta description
+  const cleanExcerpt = article.content.substring(0, 160).replace(/<[^>]*>/g, '') + '...';
+  
   return {
     title: `${article.title} | Yotta Insights`,
-    description: article.content.substring(0, 160).replace(/<[^>]*>/g, '') + '...',
+    description: cleanExcerpt,
     openGraph: {
       title: article.title,
-      description: article.content.substring(0, 160).replace(/<[^>]*>/g, '') + '...',
+      description: cleanExcerpt,
       type: 'article',
-      publishedTime: article.date,
-      authors: [article.author],
+      publishedTime: article.published_at || article.created_at,
+      authors: [article.author_name],
       tags: article.tags,
     },
   };
 }
 
-// Mock data for blog articles - in a real app, this would come from a CMS or database
-const articles = [
-  {
-    id: 1,
-    title: '5 Essential Steps to Register Your Business in Singapore',
-    category: 'Business Registration',
-    date: 'Dec 15, 2024',
-    readTime: '5 min read',
-    author: 'Sarah Mitchell',
-    authorRole: 'Senior Business Consultant',
-    content: `
-      <h2>Understanding Business Registration in Singapore</h2>
-      <p>Singapore consistently ranks as one of the world's easiest places to do business, thanks to its streamlined registration process, favorable tax system, and strategic location in Southeast Asia. Before diving into the registration steps, it's important to understand the basics of company formation in Singapore.</p>
-      
-      <h2>Step 1: Choose Your Business Structure</h2>
-      <p>The first and most crucial step is deciding on the right business structure. Singapore offers several options:</p>
-      <ul>
-        <li><strong>Private Limited Company</strong> - The most common choice, offering limited liability protection</li>
-        <li><strong>Sole Proprietorship</strong> - Simple structure but without liability protection</li>
-        <li><strong>Partnership</strong> - Shared ownership between 2-20 partners</li>
-        <li><strong>Limited Liability Partnership (LLP)</strong> - Combines partnership flexibility with limited liability</li>
-        <li><strong>Branch Office</strong> - Extension of foreign companies</li>
-      </ul>
-      <p>Each structure has different implications for taxation, liability, and compliance requirements. For most businesses, a Private Limited Company offers the best balance of credibility, protection, and tax benefits.</p>
-      
-      <h2>Step 2: Fulfill the Requirements</h2>
-      <p>To register a Private Limited Company in Singapore, you'll need:</p>
-      <ul>
-        <li>At least one shareholder (can be individual or corporate entity)</li>
-        <li>At least one director who is a Singapore resident (citizen, permanent resident, or EntrePass holder)</li>
-        <li>A company secretary (within 6 months of incorporation)</li>
-        <li>Minimum paid-up capital of S$1 (can be increased later)</li>
-        <li>A registered physical address in Singapore (not a P.O. box)</li>
-      </ul>
-      <p>If you don't have a local director, consider using a nominee director service until you establish local presence or obtain relevant passes.</p>
-      
-      <h2>Step 3: Register with ACRA</h2>
-      <p>All businesses must register with the Accounting and Corporate Regulatory Authority (ACRA) through the BizFile+ portal. The registration process involves:</p>
-      <ul>
-        <li>Reserving a company name</li>
-        <li>Submitting company constitution documents</li>
-        <li>Providing directors' and shareholders' details</li>
-        <li>Declaring compliance with the Companies Act</li>
-      </ul>
-      <p>Name approval typically takes 1-2 hours if there are no issues, and the entire registration can be completed within 1-3 business days.</p>
-      
-      <h2>Step 4: Post-Registration Requirements</h2>
-      <p>After successful registration, you'll need to:</p>
-      <ul>
-        <li>Apply for relevant business licenses and permits specific to your industry</li>
-        <li>Register for Goods and Services Tax (GST) if your annual turnover exceeds S$1 million</li>
-        <li>Open a corporate bank account</li>
-        <li>Register with the Central Provident Fund (CPF) if hiring employees</li>
-        <li>Set up a proper accounting system to comply with Singapore's reporting requirements</li>
-      </ul>
-      
-      <h2>Step 5: Ongoing Compliance</h2>
-      <p>Singapore companies must maintain ongoing compliance with:</p>
-      <ul>
-        <li>Annual filing of financial statements and tax returns</li>
-        <li>Holding Annual General Meetings (AGMs)</li>
-        <li>Updating ACRA about any changes in company details</li>
-        <li>Maintaining proper corporate records</li>
-        <li>Filing annual returns</li>
-      </ul>
-      <p>Failure to comply with these requirements can result in penalties or even deregistration of your company.</p>
-      
-      <h2>Conclusion</h2>
-      <p>While Singapore offers one of the most efficient business registration processes globally, navigating the requirements can still be complex for newcomers. Many entrepreneurs choose to work with corporate service providers who can handle the entire registration process and ongoing compliance requirements, allowing them to focus on their core business activities.</p>
-      <p>By following these five essential steps and ensuring proper compliance from the start, you'll set your Singapore business on the path to success in one of Asia's most dynamic economies.</p>
-    `,
-    tags: ['Singapore', 'Business Registration', 'ACRA', 'Startup', 'Legal'],
-    slug: 'register-business-singapore',
-    imagePlaceholder: true
-  },
-  {
-    id: 2,
-    title: 'Top AI Tools Every SME Should Consider in 2024',
-    category: 'AI Tools',
-    date: 'Dec 12, 2024',
-    readTime: '7 min read',
-    author: 'Michael Chen',
-    authorRole: 'Technology Consultant',
-    content: `<p>Detailed content about AI tools for SMEs would go here...</p>`,
-    tags: ['AI', 'SME', 'Technology', 'Productivity'],
-    slug: 'ai-tools-sme-2024',
-    imagePlaceholder: true
-  },
-  // Other articles data would be here...
-];
+// Helper function to format date
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+// Helper function to estimate read time
+const getReadTime = (content: string) => {
+  const wordsPerMinute = 200;
+  const textLength = content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+  const readTime = Math.ceil(textLength / wordsPerMinute);
+  return `${readTime} min read`;
+};
+
+// No more mock data - we're using Supabase now
+
+export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+
+  // Fetch the article matching the slug from Supabase
+  const supabase = await createClient();
+  const { data: article, error } = await supabase
+    .from('blog_posts')
+    .select('*')
+    .eq('slug', slug)
+    .eq('status', 'Published')
+    .single();
   
-  // Find the article matching the slug
-  const article = articles.find(article => article.slug === slug);
-  
-  // If no matching article is found, return 404
-  if (!article) {
+  // If no matching article is found or there's an error, return 404
+  if (!article || error) {
+    console.error('Error fetching article:', error);
     notFound();
   }
+  
+  // Fetch related articles from the same category
+  const { data: relatedArticles } = await supabase
+    .from('blog_posts')
+    .select('*')
+    .eq('status', 'Published')
+    .eq('category', article.category)
+    .neq('id', article.id)
+    .order('published_at', { ascending: false })
+    .limit(2);
 
   return (
     <Layout>
@@ -144,14 +118,16 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
             {/* Category Badge */}
             <div className="mb-6">
               <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${
-                article.category === 'Business Registration' ? 'bg-blue-100 text-blue-800' :
-                article.category === 'AI Tools' ? 'bg-purple-100 text-purple-800' :
-                article.category === 'Banking & Finance' ? 'bg-orange-100 text-orange-800' :
-                article.category === 'Legal & Compliance' ? 'bg-red-100 text-red-800' :
-                article.category === 'Marketing' ? 'bg-green-100 text-green-800' :
-                'bg-yellow-100 text-yellow-800'
+                article.category ? (
+                  article.category === 'Business Registration' ? 'bg-blue-100 text-blue-800' :
+                  article.category === 'AI Tools' ? 'bg-purple-100 text-purple-800' :
+                  article.category === 'Banking & Finance' ? 'bg-orange-100 text-orange-800' :
+                  article.category === 'Legal & Compliance' ? 'bg-red-100 text-red-800' :
+                  article.category === 'Marketing' ? 'bg-green-100 text-green-800' :
+                  'bg-yellow-100 text-yellow-800'
+                ) : 'bg-gray-100 text-gray-800'
               }`}>
-                {article.category}
+                {article.category || 'Uncategorized'}
               </span>
             </div>
             
@@ -166,14 +142,14 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                {article.date}
+                {formatDate(article.published_at || article.created_at)}
               </span>
               <span className="mx-2">•</span>
               <span className="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {article.readTime}
+                {getReadTime(article.content)}
               </span>
             </div>
             
@@ -186,8 +162,8 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                 </svg>
               </div>
               <div>
-                <p className="font-medium text-gray-900">{article.author}</p>
-                <p className="text-sm text-gray-500">{article.authorRole}</p>
+                <p className="font-medium text-gray-900">{article.author_name}</p>
+                <p className="text-sm text-gray-500">{article.author_title}</p>
               </div>
             </div>
           </div>
@@ -197,7 +173,15 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         <div className="w-full bg-gray-100">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="relative h-64 md:h-96 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
-              {article.imagePlaceholder && (
+              {article.featured_image ? (
+                <FallbackImage
+                  src={article.featured_image}
+                  alt={article.title}
+                  className="h-full w-full object-cover"
+                  fallbackSrc="https://via.placeholder.com/800x400?text=Image+Not+Found"
+                  fill
+                />
+              ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -209,13 +193,13 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         {/* Article Content */}
         <div className="w-full bg-white">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="prose prose-orange max-w-none" dangerouslySetInnerHTML={{ __html: article.content }} />
+            <div className="blog-content max-w-none" dangerouslySetInnerHTML={{ __html: article.content }} />
             
             {/* Tags */}
             <div className="mt-12 pt-6 border-t border-gray-200">
               <h3 className="text-sm font-medium text-gray-500 mb-3">Tags</h3>
               <div className="flex flex-wrap gap-2">
-                {article.tags.map((tag, index) => (
+                {article.tags && article.tags.map((tag: string, index: number) => (
                   <Link 
                     key={index} 
                     href={`/insights?tag=${encodeURIComponent(tag)}`}
@@ -256,10 +240,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
             <div className="mt-12 pt-8 border-t border-gray-200">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Related Articles</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {articles
-                  .filter(a => a.id !== article.id && a.category === article.category)
-                  .slice(0, 2)
-                  .map(relatedArticle => (
+                {relatedArticles && relatedArticles.map((relatedArticle: BlogPost) => (
                     <div key={relatedArticle.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
                       <div className="p-4">
                         <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full mb-2 ${
@@ -270,7 +251,7 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                           relatedArticle.category === 'Marketing' ? 'bg-green-100 text-green-800' :
                           'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {relatedArticle.category}
+                          {relatedArticle.category || 'Uncategorized'}
                         </span>
                         <h3 className="text-lg font-medium mb-2 hover:text-orange-500 transition-colors">
                           <Link href={`/insights/${relatedArticle.slug}`}>
@@ -278,9 +259,9 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                           </Link>
                         </h3>
                         <div className="flex items-center text-xs text-gray-500">
-                          <span>{relatedArticle.date}</span>
+                          <span>{formatDate(relatedArticle.published_at || relatedArticle.created_at)}</span>
                           <span className="mx-2">•</span>
-                          <span>{relatedArticle.readTime}</span>
+                          <span>{getReadTime(relatedArticle.content)}</span>
                         </div>
                       </div>
                     </div>

@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /admin/
+Disallow: /api/
+
+# Disallow private or sensitive paths
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /static/
+
+# Allow important crawlable paths
+Allow: /services/
+Allow: /tools/
+Allow: /insights/
+Allow: /categories/
+Allow: /about
+Allow: /contact
+Allow: /faq
+
+# Sitemap location
+Sitemap: https://yotta.com/sitemap.xml
