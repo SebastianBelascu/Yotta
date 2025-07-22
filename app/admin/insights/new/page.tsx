@@ -132,26 +132,32 @@ export default function NewBlogPostPage() {
         .map(tag => tag.trim())
         .filter(tag => tag !== '');
       
+      // Create a new object with only the fields that exist in the database schema
+      const insertData = {
+        title: formData.title,
+        slug: formData.slug,
+        category: formData.category,
+        content: formData.content,
+        tags: tagsArray,
+        status: formData.status || 'Draft',
+        author_name: formData.author_name,
+        author_title: formData.author_title,
+        featured_image: formData.featured_image,
+        created_at: new Date().toISOString(),
+        published_at: formData.status === 'Published' ? new Date().toISOString() : null,
+      };
+      
       const { data, error } = await supabase
         .from('blog_posts')
-        .insert([
-          {
-            ...formData,
-            tags: tagsArray,
-            status: formData.status || 'Draft',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            published_at: formData.status === 'Published' ? new Date().toISOString() : null,
-          },
-        ])
+        .insert([insertData])
         .select();
       
       if (error) {
-        console.error('Error creating blog post:', error);
-        if (error.message.includes('duplicate key')) {
+        console.error('Error creating blog post:', JSON.stringify(error));
+        if (error.message && error.message.includes('duplicate key')) {
           setErrors({ ...newErrors, slug: 'This slug is already in use. Please choose another.' });
         } else {
-          alert('Failed to create blog post. Please try again.');
+          alert(`Failed to create blog post: ${JSON.stringify(error)}`);
         }
       } else {
         router.push('/admin/insights');

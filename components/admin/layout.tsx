@@ -151,19 +151,19 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <aside 
         className={`${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-10 w-64 transition-transform duration-300 ease-in-out bg-blue-900 text-white flex flex-col`}
+        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-10 w-64 transition-transform duration-300 ease-in-out bg-black text-white flex flex-col`}
       >
         {/* Logo */}
-        <div className="p-4 border-b border-blue-800">
+        <div className="p-4 border-b border-gray-800">
           <div className="flex items-center">
             <span className="text-xl font-bold">VentureNext</span>
-            <span className="ml-2 text-xs bg-blue-700 px-2 py-0.5 rounded">Admin</span>
+            <span className="ml-2 text-xs bg-gray-700 px-2 py-0.5 rounded">Admin</span>
           </div>
-          <div className="text-sm text-blue-300 mt-1">Admin Dashboard</div>
+          <div className="text-sm text-gray-300 mt-1">Admin Dashboard</div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
+        <nav className="flex-1 py-4 overflow-y-auto scrollbar-none">
           <ul className="space-y-1 px-2">
             {navItems.map((item) => (
               <li key={item.name}>
@@ -171,8 +171,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                   href={item.href}
                   className={`flex items-center px-4 py-2 rounded-md ${
                     pathname === item.href
-                      ? 'bg-blue-800 text-white'
-                      : 'text-blue-200 hover:bg-blue-800 hover:text-white'
+                      ? 'bg-gray-800 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                   }`}
                 >
                   {item.icon}
@@ -186,10 +186,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </nav>
 
         {/* Account section */}
-        <div className="p-4 border-t border-blue-800">
+        <div className="p-4 border-t border-gray-800">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="h-10 w-10 rounded-full bg-blue-700 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-full bg-gray-700 flex items-center justify-center">
                 <span className="text-lg font-medium text-white">
                   {user.name ? user.name.charAt(0).toUpperCase() : 'A'}
                 </span>
@@ -197,7 +197,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium">{user.name || 'Admin User'}</p>
-              <p className="text-xs text-blue-300">{user.email || 'admin@example.com'}</p>
+              <p className="text-xs text-gray-300">{user.email || 'admin@example.com'}</p>
             </div>
           </div>
           
