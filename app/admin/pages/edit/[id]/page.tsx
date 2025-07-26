@@ -84,6 +84,17 @@ export default function EditFrontendPage({ params }: { params: Promise<{ id: str
     
     // Handle text inputs
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Always auto-generate slug from title
+    if (name === 'title') {
+      const slug = value
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      
+      setFormData(prev => ({ ...prev, slug }));
+    }
   };
 
   const validateForm = () => {
@@ -217,30 +228,7 @@ export default function EditFrontendPage({ params }: { params: Promise<{ id: str
               {errors.title && <p className="mt-1 text-sm text-red-500">{errors.title}</p>}
             </div>
 
-            {/* Slug */}
-            <div>
-              <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-1">
-                Page Slug <span className="text-red-500">*</span>
-              </label>
-              <div className="flex items-center">
-                <span className="text-gray-500 mr-2">/</span>
-                <input
-                  type="text"
-                  id="slug"
-                  name="slug"
-                  value={formData.slug}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border ${
-                    errors.slug ? 'border-red-500' : 'border-gray-300'
-                  } rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500`}
-                  placeholder="e.g. terms-of-service"
-                />
-              </div>
-              {errors.slug && <p className="mt-1 text-sm text-red-500">{errors.slug}</p>}
-              <p className="mt-1 text-xs text-gray-500">
-                The slug is the URL-friendly version of the title. It is used in the page's URL.
-              </p>
-            </div>
+            {/* Slug field removed - auto-generated from title */}
 
             {/* Content */}
             <div>

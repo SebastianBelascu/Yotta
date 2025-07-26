@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
           ${data.message.replace(/\n/g, '<br>')}
         </div>
         <hr>
-        <p style="color: #666; font-size: 12px;">This email was sent from the Yotta contact form.</p>
+        <p style="color: #666; font-size: 12px;">This email was sent from the VentureNext contact form.</p>
       `;
     } else if (type === 'list-service') {
       subject = `New Service Listing Application: ${data.businessName}`;
@@ -57,13 +57,13 @@ export async function POST(request: NextRequest) {
         <p><strong>Category:</strong> ${data.category}</p>
         <p><strong>Country:</strong> ${data.country}</p>
         <hr>
-        <p style="color: #666; font-size: 12px;">This email was sent from the Yotta "List Your Service" form.</p>
+        <p style="color: #666; font-size: 12px;">This email was sent from the VentureNext "List Your Service" form.</p>
       `;
     } else if (type === 'quote-request') {
-      subject = `New Quote Request for ${data.serviceName}`;
+      subject = `New Lead for ${data.serviceName}`;
       recipientEmail = data.providerEmail; // Send to service provider's email_for_leads
       emailContent = `
-        <h2>New Quote Request</h2>
+        <h2>New Lead</h2>
         <p><strong>Service:</strong> ${data.serviceName}</p>
         <p><strong>Client Name:</strong> ${data.firstName} ${data.lastName}</p>
         <p><strong>Email:</strong> ${data.email}</p>
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
           ${data.needs ? data.needs.replace(/\n/g, '<br>') : 'No additional details provided'}
         </div>
         <hr>
-        <p style="color: #666; font-size: 12px;">This quote request was sent from the Yotta platform. Please respond directly to the client's email address above.</p>
+        <p style="color: #666; font-size: 12px;">This lead was sent from the VentureNext platform. Please respond directly to the client's email address above.</p>
       `;
     } else {
       return NextResponse.json(
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     const mailOptions = {
-      from: `"Yotta Platform" <${process.env.SMTP_USER}>`,
+      from: `"VentureNext Platform" <${process.env.SMTP_USER}>`,
       to: recipientEmail,
       subject: subject,
       html: emailContent,
@@ -98,9 +98,9 @@ export async function POST(request: NextRequest) {
     // Send confirmation email to user if it's a contact form
     if (type === 'contact') {
       const confirmationMailOptions = {
-        from: `"Yotta Platform" <${process.env.SMTP_USER}>`,
+        from: `"VentureNext Platform" <${process.env.SMTP_USER}>`,
         to: data.email,
-        subject: 'Thank you for contacting Yotta',
+        subject: 'Thank you for contacting VentureNext',
         html: `
           <h2>Thank you for contacting us!</h2>
           <p>Hi ${data.name},</p>
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
             ${data.message.replace(/\n/g, '<br>')}
           </div>
-          <p>Best regards,<br>The Yotta Team</p>
+          <p>Best regards,<br>The VentureNext Team</p>
           <hr>
           <p style="color: #666; font-size: 12px;">This is an automated confirmation email.</p>
         `,

@@ -18,7 +18,8 @@ import {
   HelpCircle,
   Award,
   Info,
-  Home
+  Home,
+  Navigation
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -118,7 +119,12 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       name: 'About Us', 
       href: '/admin/about-us', 
       icon: <Info className="h-5 w-5" /> 
-    }
+    },
+    { 
+      name: 'Footer', 
+      href: '/admin/footer', 
+      icon: <Navigation className="h-5 w-5" /> 
+    },
   ];
 
   const secondaryNavItems = [];

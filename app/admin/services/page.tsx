@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/admin/layout';
+import { Breadcrumb } from '@/components/admin/Breadcrumb';
+import { CategoryManager } from '@/components/admin/CategoryManager';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { Plus, Search, Eye, Edit, Trash2, MoreHorizontal, Filter } from 'lucide-react';
@@ -106,7 +108,7 @@ export default function ServicesAdminPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
         </div>
       </AdminLayout>
     );
@@ -114,188 +116,196 @@ export default function ServicesAdminPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="min-h-screen bg-gray-900 text-white">
         {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Services</h1>
-            <p className="text-gray-600">Manage your service offerings</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-6 border-b border-gray-800">
+          <div className="mb-4 sm:mb-0">
+            <h1 className="text-2xl font-bold">Services</h1>
+            <p className="text-gray-400 mt-1">Manage your service offerings</p>
           </div>
           <Link
             href="/admin/services/new"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="bg-yellow-500 hover:bg-yellow-400 text-black font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
             New Service
           </Link>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <div className="flex gap-4 items-center">
-            <div className="flex-1 relative">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        {/* Main Content */}
+        <div className="p-6">
+          <Breadcrumb items={[{ label: 'Services Management' }]} />
+          
+          {/* Stats Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 mt-4">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Total</div>
+              <div className="text-2xl font-bold">{services.length}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Published</div>
+              <div className="text-2xl font-bold text-green-400">{services.filter(s => s.published).length}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Drafts</div>
+              <div className="text-2xl font-bold text-yellow-400">{services.filter(s => !s.published).length}</div>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+            <div className="flex space-x-1 bg-gray-800 rounded-lg p-1 w-full sm:w-auto">
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${statusFilter === 'all' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setStatusFilter('all')}
+              >
+                All Services
+              </button>
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${statusFilter === 'published' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setStatusFilter('published')}
+              >
+                Published
+              </button>
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${statusFilter === 'draft' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setStatusFilter('draft')}
+              >
+                Drafts
+              </button>
+            </div>
+
+            <div className="relative w-full lg:w-64">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
               <input
                 type="text"
                 placeholder="Search services..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-400" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'published' | 'draft')}
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Status</option>
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-              </select>
-            </div>
           </div>
-        </div>
 
-        {/* Services Table */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          {filteredServices.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No services found</p>
-              <Link
-                href="/admin/services/new"
-                className="text-blue-600 hover:text-blue-700 mt-2 inline-block"
-              >
-                Create your first service
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Service
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Categories
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type & Price
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredServices.map((service) => (
-                    <tr key={service.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {service.name}
-                          </div>
-                          {service.tagline && (
-                            <div className="text-sm text-gray-500">
-                              {service.tagline}
-                            </div>
+          {/* Services List */}
+          <div className="space-y-4">
+            {filteredServices.length > 0 ? (
+              filteredServices.map((service) => (
+                <div key={service.id} className="bg-gray-800 rounded-xl overflow-hidden">
+                  <div className="p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1 flex-wrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            service.published
+                              ? 'bg-green-900 text-green-200'
+                              : 'bg-yellow-900 text-yellow-200'
+                          }`}>
+                            {service.published ? 'Published' : 'Draft'}
+                          </span>
+                          
+                          {service.type_of_service && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-900 text-purple-200">
+                              {service.type_of_service}
+                            </span>
                           )}
+                          
+                          {service.price_from && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-200">
+                              From {service.currency} {service.price_from}
+                            </span>
+                          )}
+                          
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-200">
+                            {new Date(service.created_at).toLocaleDateString()}
+                          </span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
-                          {service.main_categories?.join(', ') || 'No categories'}
-                        </div>
-                        {service.sub_categories && service.sub_categories.length > 0 && (
-                          <div className="text-xs text-gray-500">
-                            {service.sub_categories.join(', ')}
+                        
+                        <h3 className="text-lg font-medium text-white">{service.name}</h3>
+                        {service.tagline && (
+                          <p className="text-sm text-gray-400 mt-1">{service.tagline}</p>
+                        )}
+                        
+                        {(service.main_categories?.length > 0 || service.sub_categories?.length > 0) && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {service.main_categories?.map((category, index) => (
+                              <span
+                                key={`main-${index}`}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900 text-blue-200"
+                              >
+                                {category}
+                              </span>
+                            ))}
+                            
+                            {service.sub_categories?.map((category, index) => (
+                              <span
+                                key={`sub-${index}`}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-900 text-indigo-200"
+                              >
+                                {category}
+                              </span>
+                            ))}
                           </div>
                         )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
-                          {service.type_of_service || 'Not specified'}
-                        </div>
-                        {service.price_from && (
-                          <div className="text-sm text-gray-500">
-                            From {service.currency} {service.price_from}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
+                      </div>
+                      
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <Link
+                          href={`/services/${nameToSlug(service.name)}`}
+                          className="p-2 rounded-lg hover:bg-blue-900/30 text-blue-400"
+                          title="View Public Page"
+                        >
+                          <Eye className="h-5 w-5" />
+                        </Link>
                         <button
                           onClick={() => togglePublished(service.id, service.published)}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            service.published
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
+                          className={`p-2 rounded-lg ${service.published ? 'hover:bg-red-900/30 text-red-400' : 'hover:bg-green-900/30 text-green-400'}`}
+                          title={service.published ? 'Unpublish' : 'Publish'}
                         >
-                          {service.published ? 'Published' : 'Draft'}
+                          {service.published ? <Eye className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                         </button>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(service.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/services/${nameToSlug(service.name)}`}
-                            className="text-gray-400 hover:text-gray-600"
-                            title="View"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                          <Link
-                            href={`/admin/services/edit/${service.id}`}
-                            className="text-blue-600 hover:text-blue-900"
-                            title="Edit"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(service.id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                        <Link
+                          href={`/admin/services/edit/${service.id}`}
+                          className="p-2 rounded-lg hover:bg-blue-900/30 text-blue-400"
+                          title="Edit Service"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(service.id)}
+                          className="p-2 rounded-lg hover:bg-red-900/30 text-red-400"
+                          title="Delete Service"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 pt-3 border-t border-gray-700 flex justify-between items-center text-xs text-gray-500">
+                      <span>Updated {new Date(service.updated_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="bg-gray-800 rounded-lg p-8 text-center">
+                <p className="text-gray-400 mb-4">No services found</p>
+                <Link
+                  href="/admin/services/new"
+                  className="bg-yellow-500 hover:bg-yellow-400 text-black font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors mx-auto"
+                >
+                  <Plus className="h-5 w-5" />
+                  Create First Service
+                </Link>
+              </div>
+            )}
+          </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <div className="text-2xl font-bold text-gray-900">{services.length}</div>
-            <div className="text-sm text-gray-500">Total Services</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <div className="text-2xl font-bold text-green-600">
-              {services.filter(s => s.published).length}
-            </div>
-            <div className="text-sm text-gray-500">Published</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
-            <div className="text-2xl font-bold text-gray-600">
-              {services.filter(s => !s.published).length}
-            </div>
-            <div className="text-sm text-gray-500">Drafts</div>
-          </div>
+
+        
+          {/* Category Management Section is hidden as it's not fully functional yet */}
         </div>
       </div>
     </AdminLayout>

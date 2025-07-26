@@ -1,16 +1,35 @@
 'use client';
 
 import React, { useRef, useCallback, useState, useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { 
   Bold, 
   Italic, 
   Underline, 
+  Strikethrough,
   List, 
   ListOrdered, 
   Link, 
   Type,
   Heading1,
-  Heading2
+  Heading2,
+  Heading3,
+  Heading4,
+  Heading5,
+  Heading6,
+  Quote,
+  Code,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Minus,
+  Undo,
+  Redo,
+  RemoveFormatting,
+  Subscript,
+  Superscript,
+  Palette
 } from 'lucide-react';
 
 interface RichTextEditorProps {
@@ -37,14 +56,36 @@ export default function RichTextEditor({
       editorRef.current.innerHTML = value || '';
     }
   }, [value]);
+  
+  // Track editor history
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  
+  // Save content to history
+  const saveToHistory = useCallback((content: string) => {
+    setHistory(prev => {
+      // If we're not at the end of the history, truncate it
+      const newHistory = historyIndex < prev.length - 1 
+        ? prev.slice(0, historyIndex + 1) 
+        : prev;
+      
+      // Only add to history if content is different from last entry
+      if (newHistory.length === 0 || newHistory[newHistory.length - 1] !== content) {
+        return [...newHistory, content];
+      }
+      return newHistory;
+    });
+    setHistoryIndex(prev => prev + 1);
+  }, [historyIndex]);
 
   // Handle content changes
   const handleInput = useCallback(() => {
     if (editorRef.current) {
       const content = editorRef.current.innerHTML;
       onChange(content);
+      saveToHistory(content);
     }
-  }, [onChange]);
+  }, [onChange, saveToHistory]);
 
   // Exec command wrapper - improved to work with single click
   const execCommand = useCallback((command: string, value: string = '') => {
@@ -98,7 +139,28 @@ export default function RichTextEditor({
       newActiveStates[command] = document.queryCommandState(command);
     });
     
-    setIsActive(newActiveStates);
+    // Check for current block format
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const parentElement = selection.getRangeAt(0).startContainer.parentElement;
+      if (parentElement) {
+        const tagName = parentElement.tagName.toLowerCase();
+        
+        // Reset all heading states
+        ['paragraph', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(t => {
+          newActiveStates[t] = false;
+        });
+        
+        // Set the active state for the current tag
+        if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+          newActiveStates[tagName] = true;
+        } else {
+          newActiveStates.paragraph = true;
+        }
+      }
+    }
+    
+    setIsActive(prev => ({ ...prev, ...newActiveStates }));
   }, []);
 
   // Handle selection change to update toolbar states
@@ -106,9 +168,12 @@ export default function RichTextEditor({
     const handleSelectionChange = () => {
       updateActiveStates();
     };
-
+    
     document.addEventListener('selectionchange', handleSelectionChange);
-    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+    
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
   }, [updateActiveStates]);
 
   // Insert link
@@ -119,10 +184,83 @@ export default function RichTextEditor({
     }
   }, [execCommand]);
 
+  // Insert horizontal rule
+  const insertHorizontalRule = useCallback(() => {
+    execCommand('insertHorizontalRule');
+  }, [execCommand]);
+
+  // Remove formatting
+  const removeFormatting = useCallback(() => {
+    execCommand('removeFormat');
+  }, [execCommand]);
+  
+  // Custom undo function
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      
+      if (editorRef.current && history[newIndex]) {
+        editorRef.current.innerHTML = history[newIndex];
+        onChange(history[newIndex]);
+      }
+    }
+  }, [historyIndex, history, onChange]);
+  
+  // Custom redo function
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      
+      if (editorRef.current && history[newIndex]) {
+        editorRef.current.innerHTML = history[newIndex];
+        onChange(history[newIndex]);
+      }
+    }
+  }, [historyIndex, history, onChange]);
+
+  // Change text color
+  const changeTextColor = useCallback(() => {
+    const color = prompt('Enter color (hex, rgb, or color name):');
+    if (color) {
+      execCommand('foreColor', color);
+    }
+  }, [execCommand]);
+
+  // Change background color
+  const changeBackgroundColor = useCallback(() => {
+    const color = prompt('Enter background color (hex, rgb, or color name):');
+    if (color) {
+      execCommand('backColor', color);
+    }
+  }, [execCommand]);
+
   // Format block (headings, paragraphs)
   const formatBlock = useCallback((tag: string) => {
-    execCommand('formatBlock', tag);
-  }, [execCommand]);
+    // Focus the editor first
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+    
+    // Make sure tag has proper format with angle brackets
+    const formattedTag = tag.startsWith('<') ? tag : `<${tag}>`;
+    
+    // Execute the format command directly
+    document.execCommand('formatBlock', false, formattedTag);
+    
+    // Update active states for headings
+    const headingStates: Record<string, boolean> = {};
+    ['paragraph', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(t => {
+      headingStates[t] = t === tag;
+    });
+    setIsActive(prev => ({ ...prev, ...headingStates }));
+    
+    // Update the editor content
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML);
+    }
+  }, [onChange]);
 
   // Toolbar button component
   const ToolbarButton = ({ 
@@ -150,30 +288,73 @@ export default function RichTextEditor({
     </button>
   );
 
-
-
   return (
     <div className={`border rounded-lg ${error ? 'border-red-500' : 'border-gray-300'} ${className}`}>
       {/* Toolbar */}
       <div className="flex items-center gap-1 p-2 border-b bg-gray-50 flex-wrap">
+        {/* Undo/Redo */}
+        <ToolbarButton
+          onClick={handleUndo}
+          icon={Undo}
+          title="Undo"
+        />
+        <ToolbarButton
+          onClick={handleRedo}
+          icon={Redo}
+          title="Redo"
+        />
+        
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+        
+        {/* Paragraph Format */}
         <ToolbarButton
           onClick={() => formatBlock('p')}
           icon={Type}
-          title="Paragraph"
+          title="Normal Text"
+          isActive={isActive.paragraph}
         />
+        
+        {/* Heading Buttons */}
         <ToolbarButton
           onClick={() => formatBlock('h1')}
           icon={Heading1}
           title="Heading 1"
+          isActive={isActive.h1}
         />
         <ToolbarButton
           onClick={() => formatBlock('h2')}
           icon={Heading2}
           title="Heading 2"
+          isActive={isActive.h2}
+        />
+        <ToolbarButton
+          onClick={() => formatBlock('h3')}
+          icon={Heading3}
+          title="Heading 3"
+          isActive={isActive.h3}
+        />
+        <ToolbarButton
+          onClick={() => formatBlock('h4')}
+          icon={Heading4}
+          title="Heading 4"
+          isActive={isActive.h4}
+        />
+        <ToolbarButton
+          onClick={() => formatBlock('h5')}
+          icon={Heading5}
+          title="Heading 5"
+          isActive={isActive.h5}
+        />
+        <ToolbarButton
+          onClick={() => formatBlock('h6')}
+          icon={Heading6}
+          title="Heading 6"
+          isActive={isActive.h6}
         />
         
         <div className="w-px h-6 bg-gray-300 mx-1" />
         
+        {/* Text Style */}
         <ToolbarButton
           onClick={() => execCommand('bold')}
           icon={Bold}
@@ -192,9 +373,44 @@ export default function RichTextEditor({
           title="Underline"
           isActive={isActive.underline}
         />
+        <ToolbarButton
+          onClick={() => execCommand('strikeThrough')}
+          icon={Strikethrough}
+          title="Strikethrough"
+          isActive={isActive.strikeThrough}
+        />
         
         <div className="w-px h-6 bg-gray-300 mx-1" />
         
+        {/* Alignment */}
+        <ToolbarButton
+          onClick={() => execCommand('justifyLeft')}
+          icon={AlignLeft}
+          title="Align Left"
+          isActive={isActive.justifyLeft}
+        />
+        <ToolbarButton
+          onClick={() => execCommand('justifyCenter')}
+          icon={AlignCenter}
+          title="Align Center"
+          isActive={isActive.justifyCenter}
+        />
+        <ToolbarButton
+          onClick={() => execCommand('justifyRight')}
+          icon={AlignRight}
+          title="Align Right"
+          isActive={isActive.justifyRight}
+        />
+        <ToolbarButton
+          onClick={() => execCommand('justifyFull')}
+          icon={AlignJustify}
+          title="Justify"
+          isActive={isActive.justifyFull}
+        />
+        
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+        
+        {/* Lists */}
         <ToolbarButton
           onClick={() => execCommand('insertUnorderedList')}
           icon={List}
@@ -210,10 +426,72 @@ export default function RichTextEditor({
         
         <div className="w-px h-6 bg-gray-300 mx-1" />
         
+        {/* Special Formatting */}
+        <ToolbarButton
+          onClick={() => formatBlock('blockquote')}
+          icon={Quote}
+          title="Blockquote"
+        />
+        <ToolbarButton
+          onClick={() => formatBlock('pre')}
+          icon={Code}
+          title="Code Block"
+        />
+        
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+        
+        {/* Subscript/Superscript */}
+        <ToolbarButton
+          onClick={() => execCommand('subscript')}
+          icon={Subscript}
+          title="Subscript"
+          isActive={isActive.subscript}
+        />
+        <ToolbarButton
+          onClick={() => execCommand('superscript')}
+          icon={Superscript}
+          title="Superscript"
+          isActive={isActive.superscript}
+        />
+        
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+        
+        {/* Colors */}
+        <ToolbarButton
+          onClick={changeTextColor}
+          icon={Palette}
+          title="Text Color"
+        />
+        <button
+          type="button"
+          onClick={changeBackgroundColor}
+          title="Background Color"
+          className="p-2 rounded hover:bg-gray-100 transition-colors text-gray-600"
+        >
+          <div className="w-4 h-4 border border-gray-400 bg-yellow-200 rounded"></div>
+        </button>
+        
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+        
+        {/* Insert Elements */}
         <ToolbarButton
           onClick={insertLink}
           icon={Link}
           title="Insert Link"
+        />
+        <ToolbarButton
+          onClick={insertHorizontalRule}
+          icon={Minus}
+          title="Insert Horizontal Line"
+        />
+        
+        <div className="w-px h-6 bg-gray-300 mx-1" />
+        
+        {/* Remove Formatting */}
+        <ToolbarButton
+          onClick={removeFormatting}
+          icon={RemoveFormatting}
+          title="Remove Formatting"
         />
       </div>
 
@@ -222,7 +500,13 @@ export default function RichTextEditor({
         ref={editorRef}
         contentEditable
         onInput={handleInput}
-        onFocus={() => setIsActive(prev => ({ ...prev, focused: true }))}
+        onFocus={() => {
+          setIsActive(prev => ({ ...prev, focused: true }));
+          // Save initial state to history if empty
+          if (history.length === 0) {
+            saveToHistory(editorRef.current?.innerHTML || '');
+          }
+        }}
         onBlur={() => setIsActive(prev => ({ ...prev, focused: false }))}
         className="min-h-[300px] p-4 outline-none rich-text-editor"
         style={{
@@ -273,10 +557,56 @@ export default function RichTextEditor({
         
         /* Paragraph and headings */
         .rich-text-editor p { margin: 0.75em 0; }
-        .rich-text-editor h1 { font-size: 1.8em; font-weight: bold; margin: 1em 0 0.5em; }
+        .rich-text-editor h1 { font-size: 2em; font-weight: bold; margin: 1em 0 0.5em; }
         .rich-text-editor h2 { font-size: 1.5em; font-weight: bold; margin: 1em 0 0.5em; }
         .rich-text-editor h3 { font-size: 1.25em; font-weight: bold; margin: 1em 0 0.5em; }
         .rich-text-editor h4 { font-size: 1.1em; font-weight: bold; margin: 1em 0 0.5em; }
+        .rich-text-editor h5 { font-size: 1em; font-weight: bold; margin: 1em 0 0.5em; }
+        .rich-text-editor h6 { font-size: 0.9em; font-weight: bold; margin: 1em 0 0.5em; }
+        
+        /* Blockquote */
+        .rich-text-editor blockquote { 
+          margin: 1em 0; 
+          padding: 0.5em 1em; 
+          border-left: 4px solid #3b82f6; 
+          background-color: #f8fafc; 
+          font-style: italic;
+        }
+        
+        /* Code blocks */
+        .rich-text-editor pre { 
+          background-color: #f1f5f9; 
+          border: 1px solid #e2e8f0; 
+          border-radius: 4px; 
+          padding: 1em; 
+          margin: 1em 0; 
+          font-family: 'Courier New', monospace; 
+          overflow-x: auto;
+          white-space: pre-wrap;
+        }
+        
+        /* Inline code */
+        .rich-text-editor code { 
+          background-color: #f1f5f9; 
+          border: 1px solid #e2e8f0; 
+          border-radius: 2px; 
+          padding: 0.2em 0.4em; 
+          font-family: 'Courier New', monospace; 
+          font-size: 0.9em;
+        }
+        
+        /* Horizontal rule */
+        .rich-text-editor hr { 
+          border: none; 
+          border-top: 2px solid #e2e8f0; 
+          margin: 2em 0; 
+        }
+        
+        /* Text alignment */
+        .rich-text-editor [style*="text-align: left"] { text-align: left !important; }
+        .rich-text-editor [style*="text-align: center"] { text-align: center !important; }
+        .rich-text-editor [style*="text-align: right"] { text-align: right !important; }
+        .rich-text-editor [style*="text-align: justify"] { text-align: justify !important; }
         
         /* Improved list formatting */
         .rich-text-editor ul { 
@@ -307,6 +637,9 @@ export default function RichTextEditor({
         .rich-text-editor b, .rich-text-editor strong { font-weight: bold !important; }
         .rich-text-editor i, .rich-text-editor em { font-style: italic !important; }
         .rich-text-editor u { text-decoration: underline !important; }
+        .rich-text-editor strike, .rich-text-editor s { text-decoration: line-through !important; }
+        .rich-text-editor sub { vertical-align: sub !important; font-size: smaller !important; }
+        .rich-text-editor sup { vertical-align: super !important; font-size: smaller !important; }
         
         /* Links */
         .rich-text-editor a { color: #3b82f6 !important; text-decoration: underline !important; }

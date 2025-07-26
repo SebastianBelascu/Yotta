@@ -129,7 +129,7 @@ export default function EditHomepageItemPage({ params }: { params: Promise<{ id:
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Basic Information */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white p-6 rounded-lg shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Basic Information</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -201,7 +201,7 @@ export default function EditHomepageItemPage({ params }: { params: Promise<{ id:
         </div>
 
         {/* Content */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white p-6 rounded-lg shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Content</h2>
           
           <div>

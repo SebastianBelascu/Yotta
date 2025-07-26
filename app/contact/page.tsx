@@ -160,7 +160,6 @@ export default function ContactPage() {
                       <option value="">Select a category</option>
                       <option value="general">General Inquiry</option>
                       <option value="support">Technical Support</option>
-                      <option value="billing">Billing Question</option>
                       <option value="partnership">Partnership Opportunity</option>
                       <option value="feedback">Feedback</option>
                     </select>

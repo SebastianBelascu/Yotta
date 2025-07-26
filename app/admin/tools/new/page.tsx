@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { AdminLayout } from '@/components/admin/layout';
+import { Breadcrumb } from '@/components/admin/Breadcrumb';
 import { useRouter } from 'next/navigation';
 import { Save, X, AlertCircle, Plus, Minus, Upload } from 'lucide-react';
 import { 
@@ -35,6 +36,8 @@ export default function NewToolPage() {
     logo_url: '',
     banner_url: '',
     affiliate_link: '',
+    free_trial_available: false,
+    integrations: [],
     published: false,
   });
   
@@ -158,7 +161,11 @@ export default function NewToolPage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto p-6">
+        <Breadcrumb items={[
+          { label: 'Tools Management', href: '/admin/tools' },
+          { label: 'New Tool' }
+        ]} />
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Add New Tool</h1>
@@ -169,9 +176,9 @@ export default function NewToolPage() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 mt-6">
           {/* Section 1: Basic Information */}
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-semibold">1</div>
               <h2 className="text-xl font-semibold text-gray-900">Basic Information</h2>
@@ -268,9 +275,9 @@ export default function NewToolPage() {
           </div>
 
           {/* Section 2: Tool Details */}
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 bg-pink-500 text-white rounded-full flex items-center justify-center font-semibold">2</div>
+              <div className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-semibold">2</div>
               <h2 className="text-xl font-semibold text-gray-900">Tool Details</h2>
             </div>
 
@@ -320,7 +327,7 @@ export default function NewToolPage() {
           </div>
 
           {/* Section 3: Display Information */}
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-semibold">3</div>
               <h2 className="text-xl font-semibold text-gray-900">Display Information</h2>
@@ -426,7 +433,7 @@ export default function NewToolPage() {
                     <select
                       value={formData.currency}
                       onChange={(e) => setFormData(prev => ({ ...prev, currency: e.target.value as any }))}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       {CURRENCIES.map(currency => (
                         <option key={currency.value} value={currency.value}>{currency.label}</option>
@@ -437,8 +444,34 @@ export default function NewToolPage() {
                       placeholder="0.00"
                       value={formData.starting_price || ''}
                       onChange={(e) => setFormData(prev => ({ ...prev, starting_price: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-28 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Free Trial Available? (filter)</label>
+                  <div className="flex items-center space-x-4 mt-2">
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="free_trial_available"
+                        checked={formData.free_trial_available === true}
+                        onChange={() => setFormData(prev => ({ ...prev, free_trial_available: true }))}
+                        className="rounded-full border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Yes</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="free_trial_available"
+                        checked={formData.free_trial_available === false}
+                        onChange={() => setFormData(prev => ({ ...prev, free_trial_available: false }))}
+                        className="rounded-full border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">No</span>
+                    </label>
                   </div>
                 </div>
               </div>
@@ -446,7 +479,7 @@ export default function NewToolPage() {
           </div>
 
           {/* Section 4: Region & Support */}
-          <div className="bg-white p-6 rounded-lg shadow">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-pink-500 text-white rounded-full flex items-center justify-center font-semibold">4</div>
               <h2 className="text-xl font-semibold text-gray-900">Region & Support</h2>
@@ -486,6 +519,25 @@ export default function NewToolPage() {
                     </label>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Integrations (optional)</label>
+                <input
+                  type="text"
+                  placeholder="Slack, Google Drive, Zapier, etc. (comma-separated)"
+                  value={formData.integrations?.join(', ') || ''}
+                  onChange={(e) => {
+                    const integrationsText = e.target.value;
+                    const integrationsArray = integrationsText
+                      .split(',')
+                      .map(item => item.trim())
+                      .filter(item => item !== '');
+                    setFormData(prev => ({ ...prev, integrations: integrationsArray }));
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Enter integrations separated by commas</p>
               </div>
 
               <div>

@@ -48,10 +48,11 @@ export default function EditBlogPostPage({ params }: { params: Promise<{ id: str
     featured_image: '',
   });
 
-  const [formData, setFormData] = useState<Partial<FormData>>({
+  const [formData, setFormData] = useState<Partial<FormData & { custom_category: string }>>({
     title: '',
     slug: '',
     category: '',
+    custom_category: '',
     content: '',
     tags: [],
     status: 'Draft',
@@ -79,7 +80,15 @@ export default function EditBlogPostPage({ params }: { params: Promise<{ id: str
           alert('Failed to load blog post');
           router.push('/admin/insights');
         } else if (data) {
-          setFormData(data);
+          // Check if the category is one of the standard options
+          const standardCategories = ['Tips', 'Guides', 'Announcements', 'Industry News', 'Case Studies'];
+          const isStandardCategory = standardCategories.includes(data.category);
+          
+          setFormData({
+            ...data,
+            category: isStandardCategory ? data.category : 'Custom',
+            custom_category: isStandardCategory ? '' : data.category
+          });
         } else {
           alert('Blog post not found');
           router.push('/admin/insights');
@@ -149,6 +158,9 @@ export default function EditBlogPostPage({ params }: { params: Promise<{ id: str
     if (!formData.category?.trim()) {
       newErrors.category = 'Category is required';
       hasErrors = true;
+    } else if (formData.category === 'Custom' && !formData.custom_category?.trim()) {
+      newErrors.category = 'Custom category is required';
+      hasErrors = true;
     }
     
     if (!formData.author_name?.trim()) {
@@ -201,7 +213,7 @@ export default function EditBlogPostPage({ params }: { params: Promise<{ id: str
       const updateData = {
         title: formData.title,
         slug: formData.slug,
-        category: formData.category,
+        category: formData.category === 'Custom' && formData.custom_category ? formData.custom_category : formData.category,
         content: formData.content,
         tags: tagsArray,
         status: formData.status,
@@ -264,7 +276,7 @@ export default function EditBlogPostPage({ params }: { params: Promise<{ id: str
               className="px-4 py-2 bg-blue-500 text-white rounded-md flex items-center hover:bg-blue-600"
             >
               <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
+              {isSubmitting ? 'Saving...' : 'Publish'}
             </button>
           </div>
         </div>
@@ -411,12 +423,26 @@ export default function EditBlogPostPage({ params }: { params: Promise<{ id: str
                     <option value="Announcements">Announcements</option>
                     <option value="Industry News">Industry News</option>
                     <option value="Case Studies">Case Studies</option>
+                    <option value="Custom">Custom</option>
                   </select>
                   {errors.category && (
                     <p className="mt-1 text-xs text-red-500 flex items-center">
                       <AlertCircle className="h-3 w-3 mr-1" />
                       {errors.category}
                     </p>
+                  )}
+                  
+                  {formData.category === 'Custom' && (
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        name="custom_category"
+                        value={formData.custom_category || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, custom_category: e.target.value }))}
+                        placeholder="Enter custom category"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
                   )}
                 </div>
                 

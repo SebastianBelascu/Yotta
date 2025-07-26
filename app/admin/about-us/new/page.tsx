@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { AdminLayout } from '@/components/admin/layout';
+import { Breadcrumb } from '@/components/admin/Breadcrumb';
 import { ArrowLeft, Save } from 'lucide-react';
 
 const sectionOptions = [
@@ -114,22 +116,27 @@ export default function NewAboutUsItemPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center mb-4">
-            <Link
-              href="/admin/about-us"
-              className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to About Us
-            </Link>
+    <AdminLayout>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Breadcrumb items={[
+            { label: 'About Us Management', href: '/admin/about-us' },
+            { label: 'Add New Item' }
+          ]} />
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center mb-4">
+              <Link
+                href="/admin/about-us"
+                className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back to About Us
+              </Link>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900">Add New About Us Item</h1>
+            <p className="text-gray-600 mt-2">Create a new content item for your About Us page</p>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Add New About Us Item</h1>
-          <p className="text-gray-600 mt-2">Create a new content item for your About Us page</p>
-        </div>
 
         {/* Form */}
         <div className="bg-white shadow rounded-lg">
@@ -293,7 +300,8 @@ export default function NewAboutUsItemPage() {
             </div>
           </form>
         </div>
+        </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

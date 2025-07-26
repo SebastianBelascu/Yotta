@@ -168,189 +168,166 @@ export default function FaqAdminPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6 space-y-6">
+      <div className="min-h-screen bg-gray-900 text-white">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">FAQ Management</h1>
-            <p className="text-gray-600">Manage frequently asked questions</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-6 border-b border-gray-800">
+          <div className="mb-4 sm:mb-0">
+            <h1 className="text-2xl font-bold">Manage FAQs</h1>
           </div>
           <button
             onClick={() => router.push('/admin/faq/new')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="bg-yellow-500 hover:bg-yellow-400 text-black font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
-            <Plus className="h-4 w-4" />
-            Add New FAQ
+            <Plus className="h-5 w-5" />
+            Add FAQ
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-5 gap-4">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Total FAQs</div>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Published</div>
-            <div className="text-2xl font-bold text-green-600">{stats.published}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Drafts</div>
-            <div className="text-2xl font-bold text-amber-600">{stats.draft}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">General</div>
-            <div className="text-2xl font-bold text-blue-600">{stats.general}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Providers</div>
-            <div className="text-2xl font-bold text-purple-600">{stats.providers}</div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="relative flex-grow max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+        {/* Main Content */}
+        <div className="p-6">
+          {/* Tabs and Filters */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+            <div className="flex space-x-1 bg-gray-800 rounded-lg p-1 w-full sm:w-auto">
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${filterCategory === 'all' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setFilterCategory('all')}
+              >
+                All
+              </button>
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${filterCategory === 'general' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setFilterCategory('general')}
+              >
+                Brand FAQs
+              </button>
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${filterCategory === 'providers' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setFilterCategory('providers')}
+              >
+                Partner FAQs
+              </button>
             </div>
-            <input
-              type="text"
-              placeholder="Search FAQs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="all">All Categories</option>
-              <option value="general">General</option>
-              <option value="providers">Providers</option>
-            </select>
-          </div>
-          
-          <div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="all">All Status</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-            </select>
-          </div>
-        </div>
 
-        {/* FAQ List */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Question
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Order
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Updated
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredFaqs.length > 0 ? (
-                filteredFaqs.map((faq) => (
-                  <tr key={faq.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900 truncate max-w-xs">
-                        {faq.question}
+            <div className="relative w-full lg:w-64">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search FAQs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
+              />
+            </div>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Total</div>
+              <div className="text-2xl font-bold">{stats.total}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Published</div>
+              <div className="text-2xl font-bold text-green-400">{stats.published}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Drafts</div>
+              <div className="text-2xl font-bold text-yellow-400">{stats.draft}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">General</div>
+              <div className="text-2xl font-bold text-blue-400">{stats.general}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Providers</div>
+              <div className="text-2xl font-bold text-purple-400">{stats.providers}</div>
+            </div>
+          </div>
+
+          {/* FAQ List */}
+          <div className="space-y-4">
+            {filteredFaqs.length > 0 ? (
+              filteredFaqs.map((faq) => (
+                <div key={faq.id} className="bg-gray-800 rounded-xl overflow-hidden">
+                  <div className="p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            faq.category === 'general' 
+                              ? 'bg-blue-900 text-blue-200'
+                              : 'bg-purple-900 text-purple-200'
+                          }`}>
+                            {faq.category === 'general' ? 'Brand FAQ' : 'Partner FAQ'}
+                          </span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            faq.is_published
+                              ? 'bg-green-900 text-green-200'
+                              : 'bg-yellow-900 text-yellow-200'
+                          }`}>
+                            {faq.is_published ? (
+                              <>
+                                <Eye className="mr-1 h-3 w-3" />
+                                Published
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="mr-1 h-3 w-3" />
+                                Draft
+                              </>
+                            )}
+                          </span>
+                          {faq.display_order > 0 && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-200">
+                              Order: {faq.display_order}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-medium text-white">{faq.question}</h3>
+                        <p className="text-sm text-gray-400 mt-1 line-clamp-2">
+                          {faq.answer}
+                        </p>
                       </div>
-                      <div className="text-sm text-gray-500 truncate max-w-xs">
-                        {faq.answer.substring(0, 100)}...
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        faq.category === 'general' 
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-purple-100 text-purple-800'
-                      }`}>
-                        {faq.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {faq.display_order}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleTogglePublish(faq)}
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          faq.is_published
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {faq.is_published ? (
-                          <>
-                            <Eye className="mr-1 h-3 w-3" />
-                            Published
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff className="mr-1 h-3 w-3" />
-                            Draft
-                          </>
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(faq.updated_at)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <button
+                          onClick={() => handleTogglePublish(faq)}
+                          className={`p-2 rounded-lg ${faq.is_published ? 'hover:bg-red-900/30 text-red-400' : 'hover:bg-green-900/30 text-green-400'}`}
+                          title={faq.is_published ? 'Unpublish' : 'Publish'}
+                        >
+                          {faq.is_published ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
                         <button
                           onClick={() => router.push(`/admin/faq/edit/${faq.id}`)}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="p-2 rounded-lg hover:bg-blue-900/30 text-blue-400"
                           title="Edit FAQ"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleDelete(faq.id)}
-                          className="text-red-600 hover:text-red-800"
+                          className="p-2 rounded-lg hover:bg-red-900/30 text-red-400"
                           title="Delete FAQ"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                    No FAQs found. {searchTerm && 'Try a different search term.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-700 flex justify-between items-center text-xs text-gray-500">
+                      <span>Updated {formatDate(faq.updated_at)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="bg-gray-800 rounded-lg p-8 text-center">
+                <p className="text-gray-400">
+                  No FAQs found. {searchTerm && 'Try a different search term.'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </AdminLayout>

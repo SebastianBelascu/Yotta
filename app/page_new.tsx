@@ -45,9 +45,39 @@ interface HomepageItem {
   is_published: boolean;
 }
 
+interface TopDeal {
+  id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  price: number;
+  original_price: number | null;
+  currency: string;
+  link_url: string;
+  display_order: number;
+  deal_type: 'service' | 'tool';
+  reference_id: string;
+  badge_text: string | null;
+  badge_color: string | null;
+  rating: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TopDealsSettings {
+  id: string;
+  is_visible: boolean;
+  section_title: string;
+  max_deals: number;
+  updated_at: string;
+}
+
 export default function Home() {
   const [homepageItems, setHomepageItems] = useState<HomepageItem[]>([]);
   const [latestPosts, setLatestPosts] = useState<BlogPost[]>([]);
+  const [topDeals, setTopDeals] = useState<TopDeal[]>([]);
+  const [topDealsSettings, setTopDealsSettings] = useState<TopDealsSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -63,11 +93,19 @@ export default function Home() {
         setHomepageItems(homepageData);
       }
 
-      // Fetch blog posts (keep existing logic)
+      // Fetch blog posts
       const blogResponse = await fetch('/api/blog?limit=3&status=Published');
       if (blogResponse.ok) {
         const blogData = await blogResponse.json();
         setLatestPosts(blogData.posts || []);
+      }
+      
+      // Fetch top deals
+      const topDealsResponse = await fetch('/api/top-deals');
+      if (topDealsResponse.ok) {
+        const topDealsData = await topDealsResponse.json();
+        setTopDeals(topDealsData.deals || []);
+        setTopDealsSettings(topDealsData.settings || null);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -150,34 +188,187 @@ export default function Home() {
         {/* Service Categories */}
         <div className='w-full py-16 px-4'>
           <div className='max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6'>
-            {categories.map((category) => (
-              <div key={category.id} className='bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col items-center text-center'>
-                <div className='w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4'>
-                  {category.icon_svg ? (
-                    <div dangerouslySetInnerHTML={{ __html: category.icon_svg }} />
-                  ) : (
-                    <svg
-                      xmlns='http://www.w3.org/2000/svg'
-                      className='h-8 w-8'
-                      fill='none'
-                      viewBox='0 0 24 24'
-                      stroke='#000000'
-                    >
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={2}
-                        d='M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
-                      />
+            {categories.length > 0 ? (
+              categories.map((category) => (
+                <Link 
+                  href={category.button_link || '#'} 
+                  key={category.id} 
+                  className='bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col items-center text-center'
+                >
+                  <div className='w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mb-4'>
+                    {category.icon_svg ? (
+                      <div dangerouslySetInnerHTML={{ __html: category.icon_svg }} />
+                    ) : (
+                      <svg
+                        xmlns='http://www.w3.org/2000/svg'
+                        className='h-8 w-8'
+                        fill='none'
+                        viewBox='0 0 24 24'
+                        stroke='#000000'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          strokeWidth={2}
+                          d='M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <h3 className='font-semibold text-lg mb-2'>{category.title}</h3>
+                  <p className='text-gray-600 text-sm'>{category.description}</p>
+                </Link>
+              ))
+            ) : (
+              /* Hardcoded service categories based on the image */
+              <>
+                {/* Register a Business */}
+                <Link 
+                  href="/services/register-business" 
+                  className='bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col items-center text-center'
+                >
+                  <div className='w-16 h-16 bg-red-50 rounded-lg flex items-center justify-center mb-4'>
+                    <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                  )}
-                </div>
-                <h3 className='font-semibold text-lg mb-2'>{category.title}</h3>
-                <p className='text-gray-600 text-sm'>{category.description}</p>
-              </div>
-            ))}
+                  </div>
+                  <h3 className='font-semibold text-lg mb-2'>Register a Business</h3>
+                  <p className='text-gray-600 text-sm'>Company formation and registration services</p>
+                </Link>
+                
+                {/* Legal & Compliance */}
+                <Link 
+                  href="/services/legal" 
+                  className='bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col items-center text-center'
+                >
+                  <div className='w-16 h-16 bg-yellow-50 rounded-lg flex items-center justify-center mb-4'>
+                    <svg className="h-8 w-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6l9-4 9 4m-9-4v20m-9-4l9 4 9-4m-18-4l9 4 9-4" />
+                    </svg>
+                  </div>
+                  <h3 className='font-semibold text-lg mb-2'>Legal & Compliance</h3>
+                  <p className='text-gray-600 text-sm'>Legal services and regulatory compliance</p>
+                </Link>
+                
+                {/* Banking & Finance */}
+                <Link 
+                  href="/services/banking" 
+                  className='bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col items-center text-center'
+                >
+                  <div className='w-16 h-16 bg-green-50 rounded-lg flex items-center justify-center mb-4'>
+                    <svg className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  </div>
+                  <h3 className='font-semibold text-lg mb-2'>Banking & Finance</h3>
+                  <p className='text-gray-600 text-sm'>Financial services and business banking</p>
+                </Link>
+                
+                {/* SaaS & AI Tools */}
+                <Link 
+                  href="/tools" 
+                  className='bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col items-center text-center'
+                >
+                  <div className='w-16 h-16 bg-blue-50 rounded-lg flex items-center justify-center mb-4'>
+                    <svg className="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                    </svg>
+                  </div>
+                  <h3 className='font-semibold text-lg mb-2'>SaaS & AI Tools</h3>
+                  <p className='text-gray-600 text-sm'>Software solutions to streamline your business</p>
+                </Link>
+                
+                {/* Marketing & Growth */}
+                <Link 
+                  href="/services/marketing" 
+                  className='bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col items-center text-center'
+                >
+                  <div className='w-16 h-16 bg-purple-50 rounded-lg flex items-center justify-center mb-4'>
+                    <svg className="h-8 w-8 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <h3 className='font-semibold text-lg mb-2'>Marketing & Growth</h3>
+                  <p className='text-gray-600 text-sm'>Grow your business with marketing tools</p>
+                </Link>
+              </>
+            )}
           </div>
         </div>
+
+        {/* Top Deals This Week Section */}
+        {topDealsSettings?.is_visible && topDeals.length > 0 && (
+          <div className='w-full bg-white py-16'>
+            <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+              <h2 className='text-4xl md:text-5xl font-bold text-center mb-3'>
+                {topDealsSettings.section_title || 'Top Deals This Week'}
+              </h2>
+              <p className='text-center text-gray-600 mb-12'>
+                Exclusive offers on our most popular services and tools
+              </p>
+
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'>
+                {topDeals.map((deal) => (
+                  <Link 
+                    href={deal.link_url} 
+                    key={deal.id} 
+                    className='bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300 flex flex-col'
+                  >
+                    {/* Deal Image */}
+                    <div className='relative'>
+                      <div className='aspect-w-16 aspect-h-9 w-full'>
+                        <img 
+                          src={deal.image_url} 
+                          alt={deal.title}
+                          className='object-cover w-full h-48'
+                          width={800}
+                          height={450}
+                        />
+                      </div>
+                      {deal.badge_text && (
+                        <div 
+                          className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-semibold text-white`}
+                          style={{ backgroundColor: deal.badge_color || '#FF6B35' }}
+                        >
+                          {deal.badge_text}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Deal Content */}
+                    <div className='p-6 flex-1 flex flex-col'>
+                      <h3 className='font-semibold text-xl mb-2'>{deal.title}</h3>
+                      <p className='text-gray-600 text-sm mb-4 flex-1'>{deal.description}</p>
+                      
+                      {/* Price and Rating */}
+                      <div className='flex justify-between items-center mt-auto'>
+                        <div className='flex items-baseline'>
+                          <span className='text-2xl font-bold text-gray-900'>
+                            {deal.currency}{deal.price.toFixed(2)}
+                          </span>
+                          {deal.original_price && (
+                            <span className='ml-2 text-sm text-gray-500 line-through'>
+                              {deal.currency}{deal.original_price.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {deal.rating && (
+                          <div className='flex items-center'>
+                            <svg className="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            <span className='ml-1 text-sm text-gray-600'>{deal.rating.toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Featured In Section */}
         <div className='w-full bg-gray-50 py-10'>
@@ -397,6 +588,8 @@ export default function Home() {
                         alt={post.title}
                         className='w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300'
                         fallbackSrc='/images/blog-placeholder.jpg'
+                        width={800}
+                        height={450}
                       />
                     </div>
                     <div className='p-6'>

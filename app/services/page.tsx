@@ -83,7 +83,7 @@ export default async function ServicesPage({
   }
 
   // Apply region filter
-  if (regionFilter) {
+  if (regionFilter && regionFilter !== 'Global') {
     query_builder = query_builder.contains('region_served', [regionFilter]);
   }
 

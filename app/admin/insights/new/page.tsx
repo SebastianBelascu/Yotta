@@ -17,6 +17,7 @@ export default function NewBlogPostPage() {
     title: '',
     slug: '',
     category: '',
+    custom_category: '',
     content: '',
     tags: '',
     status: 'Draft',
@@ -93,6 +94,9 @@ export default function NewBlogPostPage() {
     if (!formData.category.trim()) {
       newErrors.category = 'Category is required';
       hasErrors = true;
+    } else if (formData.category === 'Custom' && !formData.custom_category.trim()) {
+      newErrors.category = 'Custom category is required';
+      hasErrors = true;
     }
     
     if (!formData.author_name.trim()) {
@@ -136,7 +140,7 @@ export default function NewBlogPostPage() {
       const insertData = {
         title: formData.title,
         slug: formData.slug,
-        category: formData.category,
+        category: formData.category === 'Custom' && formData.custom_category ? formData.custom_category : formData.category,
         content: formData.content,
         tags: tagsArray,
         status: formData.status || 'Draft',
@@ -189,7 +193,7 @@ export default function NewBlogPostPage() {
               className="px-4 py-2 bg-blue-500 text-white rounded-md flex items-center hover:bg-blue-600"
             >
               <Save className="h-4 w-4 mr-2" />
-              {isSubmitting ? 'Saving...' : 'Save Article'}
+              {isSubmitting ? 'Saving...' : 'Publish'}
             </button>
           </div>
         </div>
@@ -336,12 +340,26 @@ export default function NewBlogPostPage() {
                     <option value="Announcements">Announcements</option>
                     <option value="Industry News">Industry News</option>
                     <option value="Case Studies">Case Studies</option>
+                    <option value="Custom">Custom</option>
                   </select>
                   {errors.category && (
                     <p className="mt-1 text-xs text-red-500 flex items-center">
                       <AlertCircle className="h-3 w-3 mr-1" />
                       {errors.category}
                     </p>
+                  )}
+                  
+                  {formData.category === 'Custom' && (
+                    <div className="mt-2">
+                      <input
+                        type="text"
+                        name="custom_category"
+                        value={formData.custom_category || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, custom_category: e.target.value }))}
+                        placeholder="Enter custom category"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
                   )}
                 </div>
                 

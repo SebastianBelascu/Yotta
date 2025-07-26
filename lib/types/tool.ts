@@ -17,6 +17,8 @@ export interface Tool {
   logo_url?: string;
   banner_url?: string;
   affiliate_link?: string;
+  free_trial_available?: boolean;
+  integrations?: string[];
   published: boolean;
   click_count: number;
   created_at: string;
@@ -41,6 +43,8 @@ export interface CreateToolData {
   logo_url?: string;
   banner_url?: string;
   affiliate_link?: string;
+  free_trial_available?: boolean;
+  integrations?: string[];
   published: boolean;
 }
 
@@ -78,6 +82,7 @@ export const PRICING_MODELS = [
   'Monthly Subscription',
   'Annual Subscription',
   'Usage-based',
+  'Pay As You Go',
   'Tiered Pricing',
   'Enterprise',
   'Trial Available'
@@ -91,7 +96,6 @@ export const PLATFORMS = [
   'macOS',
   'Linux',
   'Chrome Extension',
-  'Firefox Extension',
   'API'
 ];
 
@@ -99,9 +103,6 @@ export const REGIONS = [
   'Malaysia',
   'Singapore',
   'Global',
-  'Asia Pacific',
-  'North America',
-  'Europe',
   'Australia'
 ];
 
@@ -111,10 +112,8 @@ export const BEST_FOR_OPTIONS = [
   'SMEs',
   'Agencies',
   'Remote Teams',
-  'Product-Based Brands',
   'Enterprise',
   'Freelancers',
-  'Students',
   'Developers'
 ];
 

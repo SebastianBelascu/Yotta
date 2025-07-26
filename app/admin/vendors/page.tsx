@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/admin/layout';
-import { Plus, Edit, Trash2, Search, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Users, Home, Building } from 'lucide-react';
 import Link from 'next/link';
 
 interface Vendor {
@@ -95,8 +95,8 @@ export default function VendorsPage() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading vendors...</div>
+        <div className="flex items-center justify-center h-64 bg-gray-900">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-yellow-500"></div>
         </div>
       </AdminLayout>
     );
@@ -104,16 +104,25 @@ export default function VendorsPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 bg-gray-900 p-6 min-h-screen text-white">
+        {/* Breadcrumbs */}
+        <div className="flex items-center text-sm text-gray-400 mb-6">
+          <Link href="/admin" className="hover:text-white transition-colors">
+            Dashboard
+          </Link>
+          <span className="mx-2">/</span>
+          <span className="text-white">Vendors Directory</span>
+        </div>
+        
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Vendors Directory</h1>
-            <p className="text-gray-600">Manage your service vendors</p>
+            <h1 className="text-2xl font-bold text-white">Vendors Directory</h1>
+            <p className="text-gray-400">Manage your service vendors</p>
           </div>
           <Link
             href="/admin/vendors/new"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg hover:bg-yellow-400 flex items-center gap-2 font-medium"
           >
             <Plus className="h-4 w-4" />
             Add New Vendor
@@ -122,37 +131,43 @@ export default function VendorsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Vendors</p>
-                <p className="text-2xl font-bold text-gray-900">{vendors.length}</p>
+                <p className="text-sm text-gray-400">Total Vendors</p>
+                <p className="text-2xl font-bold text-white">{vendors.length}</p>
               </div>
-              <Users className="h-8 w-8 text-blue-600" />
+              <div className="p-3 bg-gray-700 rounded-full">
+                <Users className="h-6 w-6 text-yellow-500" />
+              </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active Vendors</p>
-                <p className="text-2xl font-bold text-gray-900">{vendors.length}</p>
+                <p className="text-sm text-gray-400">Active Vendors</p>
+                <p className="text-2xl font-bold text-green-400">{vendors.length}</p>
               </div>
-              <Users className="h-8 w-8 text-green-600" />
+              <div className="p-3 bg-gray-700 rounded-full">
+                <Building className="h-6 w-6 text-green-400" />
+              </div>
             </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Services Listed</p>
-                <p className="text-2xl font-bold text-gray-900">{totalServices}</p>
+                <p className="text-sm text-gray-400">Total Services Listed</p>
+                <p className="text-2xl font-bold text-yellow-400">{totalServices}</p>
               </div>
-              <Users className="h-8 w-8 text-purple-600" />
+              <div className="p-3 bg-gray-700 rounded-full">
+                <Users className="h-6 w-6 text-yellow-400" />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Search */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
@@ -160,92 +175,73 @@ export default function VendorsPage() {
               placeholder="Search vendors by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-white placeholder-gray-400"
             />
           </div>
         </div>
 
-        {/* Vendors Table */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">All Vendors</h2>
+        {/* Vendors List */}
+        <div className="bg-gray-800 rounded-lg shadow-md border border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-700">
+            <h2 className="text-lg font-semibold text-white">All Vendors</h2>
           </div>
           
           {filteredVendors.length === 0 ? (
-            <div className="p-8 text-center">
-              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No vendors found</h3>
-              <p className="text-gray-600 mb-4">
+            <div className="p-12 text-center">
+              <Users className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-white mb-2">No vendors found</h3>
+              <p className="text-gray-400 mb-6">
                 {searchTerm ? 'No vendors match your search criteria.' : 'Get started by adding your first vendor.'}
               </p>
               <Link
                 href="/admin/vendors/new"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center gap-2"
+                className="bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg hover:bg-yellow-400 inline-flex items-center gap-2 font-medium"
               >
                 <Plus className="h-4 w-4" />
                 Add New Vendor
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Vendor Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Contact Email
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Services Listed
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredVendors.map((vendor) => (
-                    <tr key={vendor.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{vendor.name}</div>
-                        <div className="text-sm text-gray-500">Added {formatDate(vendor.created_at)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{vendor.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{vendor.services_count || 0}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+            <div className="p-6 grid grid-cols-1 gap-6">
+              {filteredVendors.map((vendor) => (
+                <div key={vendor.id} className="bg-gray-700 rounded-lg p-5 hover:bg-gray-650 transition-colors border border-gray-600">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex-grow">
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="inline-flex px-2.5 py-1 rounded-md text-xs font-medium bg-green-900/30 text-green-400 border border-green-700">
                           Active
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/admin/vendors/edit/${vendor.id}`}
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(vendor.id, vendor.name)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                        <span className="text-sm text-gray-400">
+                          Added {formatDate(vendor.created_at)}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-medium text-white mb-2">{vendor.name}</h3>
+                      <div className="text-sm text-gray-300">
+                        {vendor.email}
+                      </div>
+                      <div className="flex items-center gap-3 mt-3">
+                        <div className="text-xs px-3 py-1 rounded-md bg-gray-600 text-gray-300">
+                          <span className="font-medium text-yellow-400">{vendor.services_count || 0}</span> services
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 md:self-start">
+                      <Link
+                        href={`/admin/vendors/edit/${vendor.id}`}
+                        className="p-2 text-gray-300 hover:text-white bg-gray-600 hover:bg-gray-500 rounded-lg transition-colors"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(vendor.id, vendor.name)}
+                        className="p-2 text-gray-300 hover:text-white bg-gray-600 hover:bg-red-600 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

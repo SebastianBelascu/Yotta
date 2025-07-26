@@ -2,15 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/admin/layout';
+import { Breadcrumb } from '@/components/admin/Breadcrumb';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Save, X, AlertCircle, Plus, Minus, Upload, Trash2 } from 'lucide-react';
 
-interface Vendor {
-  id: string;
-  name: string;
-  email: string;
-}
+
 
 // Hierarchical service categories based on the design
 const SERVICE_CATEGORIES = {
@@ -102,24 +99,24 @@ const TARGET_AUDIENCE = [
 
 // Service types
 const SERVICE_TYPES = [
-  'Consulting',
-  'Done-for-You Service',
-  'Software/Tool',
-  'Course/Training',
-  'Template/Resource',
-  'Marketplace',
-  'Other'
+  'Hourly Based',
+  'One Time Service',
+  'Monthly Retainer',
+  'Project Based',
+  'Custom /Varies',
+  'On Demand/Ad Hoc',
+  'Commission Based'
 ];
 
 // Turnaround time options
 const TURNAROUND_TIMES = [
-  '1-3 days',
-  '1 week',
-  '2 weeks', 
-  '1 month',
-  '2-3 months',
-  '3+ months',
-  'Ongoing'
+  'Within 24 hours',
+  'Within 48 hours',
+  '3-5 Business Days',
+  '1-2 Weeks',
+  '1 Month',
+  'Ongoing',
+  'Custom / Varies'
 ];
 
 // Currency options
@@ -131,7 +128,7 @@ const REGIONS = ['Malaysia', 'Singapore', 'Global'];
 export default function NewServicePage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   
@@ -148,37 +145,21 @@ export default function NewServicePage() {
     price_from: '',
     currency: 'SGD',
     turnaround_time: '',
+    custom_turnaround_time: '',
     free_consultation: false,
     portfolio_url: '',
     client_logos: [] as string[],
     email_for_leads: '',
     logo_url: '',
     banner_url: '',
-    vendor_id: '',
+
     region_served: [] as string[],
     published: false,
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  useEffect(() => {
-    fetchVendors();
-  }, []);
-  
-  const fetchVendors = async () => {
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('vendors')
-        .select('id, name, email')
-        .order('name');
-      
-      if (error) throw error;
-      setVendors(data || []);
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
-    }
-  };
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -323,10 +304,7 @@ export default function NewServicePage() {
       console.log('❌ Tagline too long');
     }
     
-    if (!formData.vendor_id.trim()) {
-      newErrors.vendor_id = 'Please select a vendor';
-      console.log('❌ Vendor validation failed');
-    }
+
     
     if (!formData.turnaround_time) {
       newErrors.turnaround_time = 'Please select turnaround time';
@@ -420,14 +398,14 @@ export default function NewServicePage() {
         type_of_service: formData.type_of_service,
         who_is_this_for: formData.who_is_this_for,
         region_served: formData.region_served,
-        turnaround_time: formData.turnaround_time,
+        turnaround_time: formData.turnaround_time === 'Custom / Varies' && formData.custom_turnaround_time ? formData.custom_turnaround_time : formData.turnaround_time,
         free_consultation: formData.free_consultation,
         price_from: formData.price_from ? Number(formData.price_from) : null,
         currency: formData.currency,
         email_for_leads: formData.email_for_leads.trim(),
         logo_url: formData.logo_url,
         banner_url: formData.banner_url,
-        vendor_id: formData.vendor_id,
+
         published: formData.published,
         portfolio_url: formData.portfolio_url,
         client_logos: formData.client_logos
@@ -435,21 +413,22 @@ export default function NewServicePage() {
       
       console.log('Submitting service data:', JSON.stringify(cleanedData, null, 2));
       
-      const { data, error } = await supabase
-        .from('services')
-        .insert([cleanedData])
-        .select()
-        .single();
+      // Use API route to create service with vendor auto-assignment
+      const response = await fetch('/api/services', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cleanedData),
+      });
       
-      if (error) {
-        console.error('Supabase error details:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API error details:', errorData);
+        throw new Error(errorData.error || 'Failed to create service');
       }
+      
+      const data = await response.json();
       
       console.log('Service created successfully:', data);
       router.push('/admin/services');
@@ -478,7 +457,11 @@ export default function NewServicePage() {
 
   return (
     <AdminLayout>
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <Breadcrumb items={[
+          { label: 'Services Management', href: '/admin/services' },
+          { label: 'New Service' }
+        ]} />
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Add New Service</h1>
@@ -823,7 +806,7 @@ export default function NewServicePage() {
               {/* Key Features */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Key Features / Highlights (3-6 points) *
+                  Highlights (3-6 points) *
                 </label>
                 {formData.highlights.map((highlight, index) => (
                   <div key={index} className="flex gap-2 mb-2">
@@ -947,17 +930,41 @@ export default function NewServicePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Typical Turnaround Time *
                 </label>
-                <select
-                  name="turnaround_time"
-                  value={formData.turnaround_time}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
-                  <option value="">Select turnaround time</option>
-                  {TURNAROUND_TIMES.map((time) => (
-                    <option key={time} value={time}>{time}</option>
-                  ))}
-                </select>
+                {formData.turnaround_time === 'Custom / Varies' ? (
+                  <div className="space-y-2">
+                    <select
+                      name="turnaround_time"
+                      value={formData.turnaround_time}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    >
+                      <option value="">Select turnaround time</option>
+                      {TURNAROUND_TIMES.map((time) => (
+                        <option key={time} value={time}>{time}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      name="custom_turnaround_time"
+                      value={formData.custom_turnaround_time || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, custom_turnaround_time: e.target.value }))}
+                      placeholder="Enter custom turnaround time"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
+                ) : (
+                  <select
+                    name="turnaround_time"
+                    value={formData.turnaround_time}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  >
+                    <option value="">Select turnaround time</option>
+                    {TURNAROUND_TIMES.map((time) => (
+                      <option key={time} value={time}>{time}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
 
@@ -1079,32 +1086,7 @@ export default function NewServicePage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Vendor *
-              </label>
-              <select
-                name="vendor_id"
-                value={formData.vendor_id}
-                onChange={handleChange}
-                className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-                  errors.vendor_id ? 'border-red-500' : 'border-gray-300'
-                }`}
-              >
-                <option value="">Select a vendor</option>
-                {vendors.map((vendor) => (
-                  <option key={vendor.id} value={vendor.id}>
-                    {vendor.name}
-                  </option>
-                ))}
-              </select>
-              {errors.vendor_id && (
-                <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.vendor_id}
-                </p>
-              )}
-            </div>
+
           </div>
 
           {/* Publish Checkbox */}

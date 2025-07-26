@@ -10,11 +10,7 @@ import RichTextEditor from '@/components/admin/RichTextEditor';
 
 const REGIONS = ['Malaysia', 'Singapore', 'Global'];
 
-interface Vendor {
-  id: string;
-  name: string;
-  email: string;
-}
+
 
 interface Service {
   id: string;
@@ -36,6 +32,8 @@ interface Service {
   logo_url: string;
   banner_url: string;
   vendor_id: string;
+  business_name: string;
+  business_email: string;
   published: boolean;
   created_at: string;
   portfolio_url: string;
@@ -47,7 +45,7 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
+
   const [formData, setFormData] = useState({
     name: '',
     tagline: '',
@@ -60,6 +58,7 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
     who_is_this_for: [] as string[],
     region_served: [] as string[],
     turnaround_time: '',
+    custom_turnaround_time: '',
     free_consultation: false,
     price_from: '',
     currency: 'SGD',
@@ -76,22 +75,9 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
 
   useEffect(() => {
     fetchService();
-    fetchVendors();
   }, [serviceId]);
 
-  const fetchVendors = async () => {
-    try {
-      const response = await fetch('/api/vendors');
-      if (response.ok) {
-        const data = await response.json();
-        setVendors(data);
-      } else {
-        console.error('Failed to fetch vendors');
-      }
-    } catch (error) {
-      console.error('Error fetching vendors:', error);
-    }
-  };
+
 
   const fetchService = async () => {
     try {
@@ -114,6 +100,17 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
           return Array.isArray(arr) ? arr : [];
         };
         
+        // Check if the turnaround time is one of the standard options or a custom value
+        const isStandardTurnaroundTime = [
+          'Within 24 hours',
+          'Within 48 hours',
+          '3-5 Business Days',
+          '1-2 Weeks',
+          '1 Month',
+          'Ongoing',
+          'Custom / Varies'
+        ].includes(data.turnaround_time || '');
+        
         setFormData({
           name: data.name || '',
           tagline: data.tagline || '',
@@ -125,7 +122,8 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
           type_of_service: data.type_of_service || '',
           who_is_this_for: ensureEmptyArray(data.who_is_this_for),
           region_served: ensureEmptyArray(data.region_served),
-          turnaround_time: data.turnaround_time || '',
+          turnaround_time: isStandardTurnaroundTime ? data.turnaround_time || '' : 'Custom / Varies',
+          custom_turnaround_time: isStandardTurnaroundTime ? '' : data.turnaround_time || '',
           free_consultation: data.free_consultation || false,
           price_from: data.price_from ? data.price_from.toString() : '',
           currency: data.currency || 'SGD',
@@ -239,14 +237,22 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
         who_is_this_for: formData.who_is_this_for.filter(who => who.trim() !== ''),
         client_logos: formData.client_logos.filter(logo => logo.trim() !== ''),
         price_from: formData.price_from ? Number(formData.price_from) : null,
+        turnaround_time: formData.turnaround_time === 'Custom / Varies' && formData.custom_turnaround_time ? formData.custom_turnaround_time : formData.turnaround_time,
       };
       
-      const { error } = await supabase
-        .from('services')
-        .update(cleanedData)
-        .eq('id', serviceId);
+      // Use API route to update service with vendor auto-assignment
+      const response = await fetch(`/api/services/${serviceId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cleanedData),
+      });
       
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update service');
+      }
       
       router.push('/admin/services');
     } catch (error) {
@@ -350,32 +356,7 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Vendor *
-                </label>
-                <select
-                  name="vendor_id"
-                  value={formData.vendor_id}
-                  onChange={handleChange}
-                  className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.vendor_id ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Select a vendor</option>
-                  {vendors.map((vendor) => (
-                    <option key={vendor.id} value={vendor.id}>
-                      {vendor.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.vendor_id && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                    <AlertCircle className="h-4 w-4" />
-                    {errors.vendor_id}
-                  </p>
-                )}
-              </div>
+
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -461,10 +442,13 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select type</option>
-                  <option value="One-time">One-time</option>
-                  <option value="Monthly">Monthly</option>
-                  <option value="Retainer">Retainer</option>
-                  <option value="Project-based">Project-based</option>
+                  <option value="Hourly Based">Hourly Based</option>
+                  <option value="One Time Service">One Time Service</option>
+                  <option value="Monthly Retainer">Monthly Retainer</option>
+                  <option value="Project Based">Project Based</option>
+                  <option value="Custom /Varies">Custom /Varies</option>
+                  <option value="On Demand/Ad Hoc">On Demand/Ad Hoc</option>
+                  <option value="Commission Based">Commission Based</option>
                 </select>
               </div>
 
@@ -472,14 +456,50 @@ export default function EditServicePage({ params }: { params: Promise<{ id: stri
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Turnaround Time
                 </label>
-                <input
-                  type="text"
-                  name="turnaround_time"
-                  value={formData.turnaround_time}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., 3-5 Business Days"
-                />
+                {formData.turnaround_time === 'Custom / Varies' ? (
+                  <div className="space-y-2">
+                    <select
+                      name="turnaround_time"
+                      value={formData.turnaround_time}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select turnaround time</option>
+                      <option value="Within 24 hours">Within 24 hours</option>
+                      <option value="Within 48 hours">Within 48 hours</option>
+                      <option value="3-5 Business Days">3-5 Business Days</option>
+                      <option value="1-2 Weeks">1-2 Weeks</option>
+                      <option value="1 Month">1 Month</option>
+                      <option value="Ongoing">Ongoing</option>
+                      <option value="Custom / Varies">Custom / Varies</option>
+                    </select>
+                    <input
+                      type="text"
+                      name="custom_turnaround_time"
+                      value={formData.custom_turnaround_time || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, custom_turnaround_time: e.target.value }))}
+                      placeholder="Enter custom turnaround time"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                ) : (
+                  <select
+                    name="turnaround_time"
+                    value={formData.turnaround_time}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    
+                    <option value="">Select turnaround time</option>
+                    <option value="Within 24 hours">Within 24 hours</option>
+                    <option value="Within 48 hours">Within 48 hours</option>
+                    <option value="3-5 Business Days">3-5 Business Days</option>
+                    <option value="1-2 Weeks">1-2 Weeks</option>
+                    <option value="1 Month">1 Month</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Custom / Varies">Custom / Varies</option>
+                  </select>
+                )}
               </div>
             </div>
 

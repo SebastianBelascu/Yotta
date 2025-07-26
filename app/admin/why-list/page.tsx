@@ -163,13 +163,13 @@ export default function WhyListAdminPage() {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'benefit':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-900 text-blue-200';
       case 'feature':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-purple-900 text-purple-200';
       case 'stat':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-900 text-green-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-700 text-gray-200';
     }
   };
 
@@ -177,7 +177,7 @@ export default function WhyListAdminPage() {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
         </div>
       </AdminLayout>
     );
@@ -185,196 +185,206 @@ export default function WhyListAdminPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6 space-y-6">
+      <div className="min-h-screen bg-gray-900 text-white">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Why List With Us</h1>
-            <p className="text-gray-600">Manage benefits, features, and statistics</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-6 border-b border-gray-800">
+          <div className="mb-4 sm:mb-0">
+            <h1 className="text-2xl font-bold">Why List With Us</h1>
+            <p className="text-gray-400 mt-1">Manage benefits, features, and statistics</p>
           </div>
           <button
             onClick={() => router.push('/admin/why-list/new')}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="bg-yellow-500 hover:bg-yellow-400 text-black font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
             Add New Item
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-6 gap-4">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Total Items</div>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Published</div>
-            <div className="text-2xl font-bold text-green-600">{stats.published}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Drafts</div>
-            <div className="text-2xl font-bold text-amber-600">{stats.draft}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Benefits</div>
-            <div className="text-2xl font-bold text-blue-600">{stats.benefits}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Features</div>
-            <div className="text-2xl font-bold text-purple-600">{stats.features}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="text-sm text-gray-500">Statistics</div>
-            <div className="text-2xl font-bold text-green-600">{stats.stats}</div>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="relative flex-grow max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
+        {/* Main Content */}
+        <div className="p-6">
+          {/* Tabs and Filters */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+            <div className="flex space-x-1 bg-gray-800 rounded-lg p-1 w-full sm:w-auto">
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${filterCategory === 'all' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setFilterCategory('all')}
+              >
+                All
+              </button>
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${filterCategory === 'benefit' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setFilterCategory('benefit')}
+              >
+                Benefits
+              </button>
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${filterCategory === 'feature' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setFilterCategory('feature')}
+              >
+                Features
+              </button>
+              <button 
+                className={`px-4 py-2 text-sm font-medium rounded-md ${filterCategory === 'stat' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+                onClick={() => setFilterCategory('stat')}
+              >
+                Statistics
+              </button>
             </div>
-            <input
-              type="text"
-              placeholder="Search items..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-          
-          <div>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="all">All Categories</option>
-              <option value="benefit">Benefits</option>
-              <option value="feature">Features</option>
-              <option value="stat">Statistics</option>
-            </select>
-          </div>
-          
-          <div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="all">All Status</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-            </select>
-          </div>
-        </div>
 
-        {/* Items List */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Title
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Icon
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Order
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Updated
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredItems.length > 0 ? (
-                filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900 truncate max-w-xs">
-                        {item.title}
+            <div className="relative w-full lg:w-64">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search items..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
+              />
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex mb-6 space-x-1 bg-gray-800 rounded-lg p-1 w-fit">
+            <button 
+              className={`px-4 py-2 text-sm font-medium rounded-md ${filterStatus === 'all' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+              onClick={() => setFilterStatus('all')}
+            >
+              All Status
+            </button>
+            <button 
+              className={`px-4 py-2 text-sm font-medium rounded-md ${filterStatus === 'published' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+              onClick={() => setFilterStatus('published')}
+            >
+              Published
+            </button>
+            <button 
+              className={`px-4 py-2 text-sm font-medium rounded-md ${filterStatus === 'draft' ? 'bg-gray-700' : 'hover:bg-gray-700/50'}`}
+              onClick={() => setFilterStatus('draft')}
+            >
+              Draft
+            </button>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Total</div>
+              <div className="text-2xl font-bold">{stats.total}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Published</div>
+              <div className="text-2xl font-bold text-green-400">{stats.published}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Drafts</div>
+              <div className="text-2xl font-bold text-yellow-400">{stats.draft}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Benefits</div>
+              <div className="text-2xl font-bold text-blue-400">{stats.benefits}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Features</div>
+              <div className="text-2xl font-bold text-purple-400">{stats.features}</div>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-4">
+              <div className="text-sm text-gray-400">Statistics</div>
+              <div className="text-2xl font-bold text-green-400">{stats.stats}</div>
+            </div>
+          </div>
+
+          {/* Items List */}
+          <div className="space-y-4">
+            {filteredItems.length > 0 ? (
+              filteredItems.map((item) => (
+                <div key={item.id} className="bg-gray-800 rounded-xl overflow-hidden">
+                  <div className="p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            item.category === 'benefit' 
+                              ? 'bg-blue-900 text-blue-200'
+                              : item.category === 'feature'
+                                ? 'bg-purple-900 text-purple-200'
+                                : 'bg-green-900 text-green-200'
+                          }`}>
+                            {item.category === 'benefit' ? 'Benefit' : item.category === 'feature' ? 'Feature' : 'Statistic'}
+                          </span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            item.is_published
+                              ? 'bg-green-900 text-green-200'
+                              : 'bg-yellow-900 text-yellow-200'
+                          }`}>
+                            {item.is_published ? (
+                              <>
+                                <Eye className="mr-1 h-3 w-3" />
+                                Published
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="mr-1 h-3 w-3" />
+                                Draft
+                              </>
+                            )}
+                          </span>
+                          {item.display_order > 0 && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-200">
+                              Order: {item.display_order}
+                            </span>
+                          )}
+                          {item.icon_name && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-200">
+                              Icon: {item.icon_name}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-medium text-white">{item.title}</h3>
+                        <p className="text-sm text-gray-400 mt-1 line-clamp-2">
+                          {item.description}
+                        </p>
                       </div>
-                      <div className="text-sm text-gray-500 truncate max-w-xs">
-                        {item.description.substring(0, 100)}...
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.icon_name || 'None'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {item.display_order}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleTogglePublish(item)}
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          item.is_published
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {item.is_published ? (
-                          <>
-                            <Eye className="mr-1 h-3 w-3" />
-                            Published
-                          </>
-                        ) : (
-                          <>
-                            <EyeOff className="mr-1 h-3 w-3" />
-                            Draft
-                          </>
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(item.updated_at)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <button
+                          onClick={() => handleTogglePublish(item)}
+                          className={`p-2 rounded-lg ${item.is_published ? 'hover:bg-red-900/30 text-red-400' : 'hover:bg-green-900/30 text-green-400'}`}
+                          title={item.is_published ? 'Unpublish' : 'Publish'}
+                        >
+                          {item.is_published ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
                         <button
                           onClick={() => router.push(`/admin/why-list/edit/${item.id}`)}
-                          className="text-blue-600 hover:text-blue-800"
+                          className="p-2 rounded-lg hover:bg-blue-900/30 text-blue-400"
                           title="Edit Item"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-5 w-5" />
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
-                          className="text-red-600 hover:text-red-800"
+                          className="p-2 rounded-lg hover:bg-red-900/30 text-red-400"
                           title="Delete Item"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-5 w-5" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
-                    No items found. {searchTerm && 'Try a different search term.'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-gray-700 flex justify-between items-center text-xs text-gray-500">
+                      <span>Updated {formatDate(item.updated_at)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="bg-gray-800 rounded-lg p-8 text-center">
+                <p className="text-gray-400">
+                  No items found. {searchTerm && 'Try a different search term.'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </AdminLayout>

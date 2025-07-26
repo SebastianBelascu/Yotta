@@ -3,6 +3,8 @@
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { AdminLayout } from '@/components/admin/layout';
+import { Breadcrumb } from '@/components/admin/Breadcrumb';
 import { ArrowLeft, Save } from 'lucide-react';
 
 const sectionOptions = [
@@ -144,31 +146,40 @@ export default function EditAboutUsPage({ params }: { params: Promise<{ id: stri
 
   if (fetchLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+      <AdminLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </AdminLayout>
     );
   }
 
   if (errors.fetch) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 mb-4">{errors.fetch}</div>
-          <Link
-            href="/admin/about-us"
-            className="text-blue-600 hover:text-blue-800"
-          >
-            Back to About Us
-          </Link>
+      <AdminLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-red-600 mb-4">{errors.fetch}</div>
+            <Link
+              href="/admin/about-us"
+              className="text-blue-600 hover:text-blue-800"
+            >
+              Back to About Us
+            </Link>
+          </div>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <AdminLayout>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <Breadcrumb items={[
+            { label: 'About Us Management', href: '/admin/about-us' },
+            { label: 'Edit Item' }
+          ]} />
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
@@ -346,7 +357,8 @@ export default function EditAboutUsPage({ params }: { params: Promise<{ id: stri
             </div>
           </form>
         </div>
+        </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }

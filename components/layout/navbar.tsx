@@ -81,15 +81,12 @@ export function Navbar() {
     <nav className="w-full flex justify-center h-14 bg-[#0a1e3b] text-white sticky top-0 z-40 shadow-md">
       <div className="w-full max-w-7xl flex justify-between items-center px-4 md:px-6">
         <div className="flex items-center gap-1.5">
-          <div className="bg-[#ff5722] text-white w-7 h-7 flex items-center justify-center rounded-md font-bold text-base">
-            Y
-          </div>
-          <Link href={"/"} className="text-xl font-bold">Yotta</Link>
+          <Link href={"/"} className="text-xl font-bold text-[#ff5722]">VentureNext</Link>
         </div>
         
         <div className="hidden md:flex items-center space-x-6">
           <Link href={"/"} className="text-base hover:text-[#ff5722] transition-colors">Home</Link>
-          <Link href={"/categories"} className="text-base hover:text-[#ff5722] transition-colors">Categories</Link>
+          <Link href={"/search"} className="text-base hover:text-[#ff5722] transition-colors">SaaS & AI Tools</Link>
           <Link href={"/insights"} className="text-base hover:text-[#ff5722] transition-colors">Insights</Link>
           <Link href={"/about"} className="text-base hover:text-[#ff5722] transition-colors">About</Link>
           <Link href={"/faq"} className="text-base hover:text-[#ff5722] transition-colors">FAQ</Link>
@@ -129,11 +126,11 @@ export function Navbar() {
               Home
             </Link>
             <Link 
-              href={"/categories"} 
+              href={"/search"} 
               className="text-white hover:text-[#ff5722] transition-colors py-2 border-b border-gray-700"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Categories
+              SaaS & AI Tools
             </Link>
             <Link 
               href={"/insights"} 
@@ -187,18 +184,20 @@ export function Navbar() {
 
       {/* List Your Service Popup */}
       {showPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md relative overflow-hidden">
-            <div className="p-5 sm:p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md relative my-8">
+            <div className="sticky top-0 z-10 bg-white pt-5 px-5 sm:pt-6 sm:px-6 flex justify-between items-center border-b pb-3">
+              <h2 className="text-xl sm:text-2xl font-bold text-black pr-8">List Your Service on VentureNext</h2>
               <button 
                 onClick={() => setShowPopup(false)} 
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700"
                 aria-label="Close popup"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
-              
-              <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 text-black">List Your Service on Yotta</h2>
+            </div>
+            
+            <div className="p-5 sm:p-6 pt-4">
               
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">

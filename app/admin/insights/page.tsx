@@ -247,7 +247,7 @@ export default function AdminBlogPage() {
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-gray-700">
                   <th className="py-3 px-4 text-left w-10">
                     <input 
                       type="checkbox" 

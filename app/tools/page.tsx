@@ -77,7 +77,7 @@ export default async function ToolsPage({
   }
 
   // Apply region filter
-  if (regionFilter) {
+  if (regionFilter && regionFilter !== 'Global') {
     query_builder = query_builder.contains('regions', [regionFilter]);
   }
 

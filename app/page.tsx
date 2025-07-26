@@ -810,11 +810,7 @@ export default async function Home() {
               </div>
             </div>
 
-            <div className='mt-8 text-center'>
-              <button className='inline-flex items-center px-6 py-2 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 rounded-md transition-colors font-medium'>
-                View All Deals
-              </button>
-            </div>
+
           </div>
         </div>
 
